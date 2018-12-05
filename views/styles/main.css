@@ -1,0 +1,152 @@
+body {
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif;
+}
+
+.App {
+  text-align: center;
+}
+
+.App-logo {
+  animation: App-logo-spin infinite 20s linear;
+  height: 80px;
+}
+
+.App-header {
+  background-color: #222;
+  height: 150px;
+  padding: 20px;
+  color: white;
+}
+
+.App-title {
+  font-size: 1.5em;
+}
+
+@keyframes App-logo-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/*
+  SYSTEM MESSAGE STYLES
+*/
+.system-message-container {
+  position: fixed;
+  right: 100px;
+  top: 100px;
+  width: 100%;
+  text-align: right;
+  z-index: 1000;
+}
+.system-message {
+  display: inline-block;
+  position: absolute;
+  margin-bottom: 0px;
+  padding: 8px;
+  padding-left: 20px;
+  right: 0px;
+  opacity: 1;
+  transition: top 0.25s ease-in;
+}
+@keyframes messageFadeIn {
+  0% {
+    opacity: 0;
+    right: 200px;
+  }
+  100% {
+    opacity: 1;
+    right: 0px;
+  }
+}
+@keyframes messageFadeOut {
+  0% {
+    opacity: 1;
+    right: 0px;
+  }
+  100% {
+    opacity: 0;
+    right: -200px;
+  }
+}
+.system-message.show {
+  animation-name: messageFadeIn;
+  animation-duration: 0.5s;
+  animation-timing-function: ease-out;
+}
+.system-message.hide {
+  animation-name: messageFadeOut;
+  animation-duration: 0.5s;
+  animation-timing-function: ease-in;
+}
+.system-message span {
+  padding-right: 20px;
+}
+.system-message button.btn:nth-child(2) {
+  margin-right: 8px;
+}
+/*
+  END SYSTEM MESSAGE STYLES
+*/
+
+/*
+  USER MESSAGE STYLES
+*/
+.message {
+  padding: 8px 20px;
+  border-radius: 3px;
+  border: 2px solid #ddd;
+  text-align: left;
+}
+.message.viewed {
+  background-color: #eee;
+}
+.message:hover {
+  border-color: #bbb;
+}
+/*
+  END USER MESSAGE STYLES
+*/
+
+/*
+  OVERLAY STYLES
+*/
+.overlay-container {
+  position: fixed;
+  z-index: 750;
+  top: 0px;
+  right: 0px;
+  bottom: 0px;
+  left: 0px;
+  background-color: rgba(0, 0, 0, 0.25);
+  padding: 5% 10%;
+}
+.overlay-container.hide {
+  display: none;
+}
+.overlay-container .overlay-content {
+  height: 100%;
+  width: 100%;
+  position: relative;
+  display: block;
+  background-color: #fff;
+  border-radius: 4px;
+  padding: 20px 40px;
+}
+.overlay-content .overlay-body {
+  position: relative;
+  max-height: calc(100% - 40px);
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.overlay-content .overlay-footer {
+  padding: 20px 40px;
+  position: absolute;
+  bottom: 0px;
+  left: 0px;
+  right: 0px;
+}
+/*
+  END OVERLAY STYLES
+*/

@@ -1,0 +1,331 @@
+import React, { Component } from 'react';
+import { connect } from "react-redux"
+
+import { message } from "../../store/modules/systemMessages.module"
+import {
+	deleteGroup,
+	assignToProject,
+	create,
+	getGroups,
+	removeFromProject,
+	adjustAuthLevel
+} from "../../store/modules/groups.module"
+import { getProjects } from "../../store/modules/projects.module"
+
+class Group extends Component {
+	constructor(props) {
+		super(props);
+		this.state = {
+			removeFrom: "",
+			assignTo: "",
+			adjust: "",
+			adjusted_auth_level: -1,
+			auth_level: -1
+		}
+	}
+	onChange(e) {
+		this.setState({ [e.target.id]: e.target.value })
+	}
+	validateAssign(e) {
+		e.preventDefault();
+
+		const errors = [];
+		const {
+			assignTo,
+			auth_level
+		} = this.state;
+		if (!assignTo) {
+			errors.push("You must select a project.")
+		}
+		if (auth_level < 0) {
+			errors.push("You must assign an authority level.")
+		}
+		errors.forEach(e => this.props.message(e));
+		if (!errors.length) {
+			this.props.assignToProject(this.props.name, assignTo, auth_level);
+			this.setState({ assignTo: "", auth_level: -1 });
+		}
+	}
+	validateRemove(e) {
+		e.preventDefault();
+
+		const errors = [];
+		const {
+			removeFrom
+		} = this.state;
+		if (!removeFrom) {
+			errors.push("You must select a project.")
+		}
+		errors.forEach(e => this.props.message(e));
+		if (!errors.length) {
+			this.props.removeFromProject(this.props.name, removeFrom);
+			this.setState({ removeFrom: "" });
+		}
+	}
+	validateAdjust(e) {
+		e.preventDefault();
+
+		const errors = [];
+		const {
+			adjust,
+			adjusted_auth_level
+		} = this.state;
+		if (!adjust) {
+			errors.push("You must select a project.")
+		}
+		if (adjusted_auth_level < 0) {
+			errors.push("You must assign an authority level.")
+		}
+		errors.forEach(e => this.props.message(e));
+		if (!errors.length) {
+			this.props.adjustAuthLevel(this.props.name, adjust, adjusted_auth_level);
+			this.setState({ adjust: "", adjusted_auth_level: -1 });
+		}
+	}
+	deleteGroup() {
+		this.props.message(
+			`Are you sure you wish to delete group "${ this.props.name }"?`,
+			{
+				duration: 0,
+				onConfirm: () => this.props.deleteGroup(this.props.name)
+			}
+		)
+	}
+	render() {
+		const {
+			name,
+			meta,
+			created_at,
+			created_by,
+			projects,
+			allProjects,
+			authLevel
+		} = this.props;
+		const {
+			removeFrom,
+			assignTo,
+			auth_level,
+			adjust,
+			adjusted_auth_level
+		} = this.state;
+		return (
+			<tr>
+				<td>{ name }</td>
+				<td>{ created_by }</td>
+				<td>{ new Date(created_at).toLocaleString() }</td>
+
+				<td>
+					<select value={ adjust } id="adjust"
+						className="form-control form-control-sm"
+						onChange={ this.onChange.bind(this) }>
+						<option value="" hidden>select a project...</option>
+						{
+							projects.map(p =>
+								<option key={ p.name } value={ p.name }>({ p.auth_level }) { p.name }</option>
+							)
+						}
+					</select>
+				</td>
+				<td>
+					<input type="number" min={ 0 } max={ 10 }
+						className="form-control form-control-sm"
+						id="adjusted_auth_level" value={ adjusted_auth_level }
+						onChange={ this.onChange.bind(this) }/>
+				</td>
+				<td>
+					<button onClick={ this.validateAdjust.bind(this) }
+						className="btn btn-sm btn-primary">
+						adjust
+					</button>
+				</td>
+
+				<td>
+					<select value={ assignTo } id="assignTo"
+						onChange={ this.onChange.bind(this) }
+						className="form-control form-control-sm">
+						<option value="" hidden>select a project...</option>
+						{
+							allProjects
+								.filter(p => projects.reduce((a, c) => a && (c.name !== p.name), true))
+								.map(p => <option key={ p.name } value={ p.name }>{ p.name }</option>)
+						}
+					</select>
+				</td>
+				<td>
+					<input type="number" min={ 0 } max={ 10 }
+						className="form-control form-control-sm"
+						id="auth_level" value={ auth_level }
+						onChange={ this.onChange.bind(this) }/>
+				</td>
+				<td>
+					<button onClick={ this.validateAssign.bind(this) }
+						className="btn btn-sm btn-primary">assign</button>
+				</td>
+
+				<td>
+					<select value={ removeFrom } id="removeFrom"
+						className="form-control form-control-sm"
+						onChange={ this.onChange.bind(this) }>
+						<option value="" hidden>select a project...</option>
+						{
+							projects.map(p =>
+								<option key={ p.name } value={ p.name }>({ p.auth_level }) { p.name }</option>
+							)
+						}
+					</select>
+				</td>
+				<td>
+					<button onClick={ this.validateRemove.bind(this) }
+						className="btn btn-sm btn-danger">remove</button>
+				</td>
+
+				<td><button onClick={ this.deleteGroup.bind(this) }
+					className="btn btn-sm btn-danger">delete</button></td>
+			</tr>
+		)
+	}
+}
+
+class GroupManagement extends Component {
+	constructor(props) {
+		super(props);
+		this.state = {
+			name: "",
+			searchFilter: "",
+			projectFilter: ""
+		}
+	}
+	componentDidMount() {
+		this.props.getGroups();
+		this.props.getProjects();
+	}
+	onChange(e) {
+		this.setState({ [e.target.id]: e.target.value });
+	}
+	validate(e) {
+		e.preventDefault();
+
+		const errors = [];
+		if (!this.state.name) {
+			errors.push("Missing required parameter: name.");
+		}
+		errors.forEach(e => this.props.message(e));
+		if (!errors.length) {
+			this.props.create(this.state.name);
+		}
+	}
+	render() {
+		const { groups, projects } = this.props;
+		const {
+			searchFilter,
+			projectFilter
+		} = this.state;
+		return (
+      <div className="container-fluid">
+        <h3>Group Management</h3>
+        <table className="table table-sm">
+          <thead>
+          	<tr>
+          		<th colSpan={ 3 }>
+          			Search Groups
+          		</th>
+          		<th colSpan={ 3 }>
+          			Project Filter
+          		</th>
+          	</tr>
+          	<tr>
+          		<td colSpan={ 3 }>
+          			<input type="text" placeholder="search group names..."
+          				className="form-control form-control-sm"
+          				id="searchFilter" value={ searchFilter }
+          				onChange={ this.onChange.bind(this) }/>
+          		</td>
+          		<td colSpan={ 3 }>
+          			<select className="form-control form-control-sm"
+          				onChange={ this.onChange.bind(this) } id="projectFilter">
+          				<option value="">None</option>
+          				{
+          					projects.sort((a, b) => a.name < b.name ? -1 : 1)
+          						.map(g => <option value={ g.name }>{ g.name }</option>)
+          				}
+          			</select>
+          		</td>
+          	</tr>
+            <tr>
+              <th>name</th>
+              <th>created by</th>
+              <th>created at</th>
+
+              <th>projects</th>
+              <th>authority</th>
+              <th>adjust</th>
+
+              <th>projects</th>
+              <th>authority</th>
+              <th>assign</th>
+
+              <th>projects</th>
+              <th>remove</th>
+
+              <th>delete</th>
+            </tr>
+          </thead>
+          <tbody>
+            {
+              groups
+              	.filter(g => g.name.toLowerCase().includes(searchFilter.toLowerCase()))
+              	.filter(g => !projectFilter || g.projects.reduce((a, c) => a || c.name === projectFilter, false))
+              	.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf())
+	              .map(g =>
+	                <Group key={ g.name } { ...g }
+	                	authLevel={ this.props.user.authLevel }
+	                	message={ this.props.message }
+	                	allProjects={ projects }
+	                	assignToProject={ this.props.assignToProject }
+	                	removeFromProject={ this.props.removeFromProject }
+	                	deleteGroup={ this.props.deleteGroup }
+	                	adjustAuthLevel={ this.props.adjustAuthLevel }/>
+	              )
+            }
+          </tbody>
+        </table>
+        <h3>Create A New Group</h3>
+        <form onSubmit={ this.validate.bind(this) }>
+        	<div className="form-group row">
+        		<div className="col-4"/>
+        		<div className="col-4">
+		        	<input id="name" type="text"
+		        		onChange={ this.onChange.bind(this) }
+		        		placeholder="group name..."
+		        		className="form-control form-control-sm"
+		        		value={ this.state.name }/>
+		        </div>
+	        </div>
+        	<div>
+	        	<input type="submit" value="create"
+	        		className="btn btn-sm btn-primary"/>
+	        </div>
+        </form>
+			</div>
+		)
+	}
+}
+
+const mapStateToProps = state => ({
+	groups: state.groups,
+	projects: state.projects,
+	user: state.user
+})
+
+const mapDispatchToProps = {
+	assignToProject,
+	create,
+	deleteGroup,
+  getGroups,
+  getProjects,
+  message,
+	removeFromProject,
+	adjustAuthLevel
+}
+
+export default connect(mapStateToProps, mapDispatchToProps)(GroupManagement);

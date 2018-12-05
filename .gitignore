@@ -1,0 +1,6 @@
+*.env
+node_modules
+availUserData.json
+host.json
+secret.json
+postgres.env
