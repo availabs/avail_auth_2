@@ -1,11 +1,9 @@
 const nodemailer = require("nodemailer");
+const auth = require("mailgun.json");
 
 const smtpTransport = nodemailer.createTransport({
 	service: "Mailgun",
-	auth: {
-		user: "postmaster@availabs.org",
-		pass: "6fc3e057cee5b067d6dfdfd7985290d7"
-	}
+	auth
 })
 
 module.exports = {
