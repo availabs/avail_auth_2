@@ -11,9 +11,7 @@ const middleware = [
 	thunk
 ]
 
-const store = createStore(
+export default () => createStore(
   combineReducers(modules),
   applyMiddleware(...middleware)
 )
-
-export default store
