@@ -48,7 +48,7 @@ export const auth = () =>
    		return postJson("/auth", { token, project })
         .then(res => {
           	if (res.error) {
-              dispatch(logout(res.error));
+              dispatch(logout());
       				dispatch(message(res.error));
           	}
           	else {

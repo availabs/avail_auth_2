@@ -47,11 +47,13 @@ const HTML_TEMPLATE_NO_CLICK = `
 
 module.exports = {
 	htmlTemplate: (body1, body2, href, click) =>
-		HTML_TEMPLATE.replace("__BODY_1__", body1)
+		HTML_TEMPLATE
+			.replace("__BODY_1__", body1)
 			.replace("__BODY_2__", body2)
 			.replace("__HREF__", href)
 			.replace("__CLICK__", click),
 	htmlTemplateNoClick: (body1, body2) =>
-		HTML_TEMPLATE_NO_CLICK.replace("__BODY_1__", body1)
+		HTML_TEMPLATE_NO_CLICK
+			.replace("__BODY_1__", body1)
 			.replace("__BODY_2__", body2),
 }			

@@ -9,7 +9,7 @@ const smtpTransport = nodemailer.createTransport({
 module.exports = {
 	send: (to, subject, text, html) => {
 		const mailOptions = {
-			from: "postmaster@availabs.org",
+			from: auth.user,
 			to,
 			subject,
 			text,
