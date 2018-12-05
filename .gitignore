@@ -1,6 +1,8 @@
 *.env
+
 node_modules
+static
+
 availUserData.json
 host.json
 secret.json
-postgres.env

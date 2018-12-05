@@ -25,4 +25,4 @@ app.get("*", (req, res) => {
 
 const port = 3333;
 const server = app.listen(3333)
-console.log(`listening on port ${port}`)
+console.log(`listening on port ${ port }`)
