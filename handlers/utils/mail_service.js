@@ -1,5 +1,5 @@
 const nodemailer = require("nodemailer");
-const auth = require("mailgun.json");
+const auth = require("./mailgun.json");
 
 const smtpTransport = nodemailer.createTransport({
 	service: "Mailgun",
