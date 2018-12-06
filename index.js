@@ -23,6 +23,6 @@ app.get("*", (req, res) => {
 	res.render("404");
 })
 
-const port = 3333;
-const server = app.listen(3333)
+const port = 3457;
+const server = app.listen(3457)
 console.log(`listening on port ${ port }`)
