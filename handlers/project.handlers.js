@@ -15,9 +15,9 @@ module.exports = {
 			.then(() => res.json({ message: `Project ${ name } was created.` }))
 			.catch(e => res.json({ error: e.message }));
 	},
-	deleteProject: (req, res) => {
+	delete: (req, res) => {
 		const { token, name } = req.body;
-		utils.deleteProject(token, name)
+		utils.delete(token, name)
 			.then(() => res.json({ message: `Project ${ name } was deleted.` }))
 			.catch(e => res.json({ error: e.message }));
 	}

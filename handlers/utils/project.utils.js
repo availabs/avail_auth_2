@@ -74,7 +74,7 @@ module.exports = {
 				.catch(reject)
 		})
 	},
-	deleteProject: (token, name) => {
+	delete: (token, name) => {
 		return new Promise((resolve, reject) => {
 			verifyAndGetUserData(token)
 				.then(userData => {

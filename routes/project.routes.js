@@ -16,7 +16,7 @@ module.exports = [
 	{
 		route: "/project/delete",
 		method: "post",
-		handler: ProjectHandlers.deleteProject
+		handler: ProjectHandlers.delete
 	}
 
 ]

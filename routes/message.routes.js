@@ -23,7 +23,7 @@ module.exports = [
 	{
 		route: "/message/delete",
 		method: "post",
-		handler: MessageHandlers.deleteMessage
+		handler: MessageHandlers.delete
 	}
 
 ]

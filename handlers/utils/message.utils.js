@@ -176,7 +176,7 @@ const sendMessageToAll = (userData, heading, message) => {
 
 module.exports = {
 
-	getMessages: token => {
+	get: token => {
 		return verifyAndGetUserData(token)
 			.then(userData => {
 				const sql = `
@@ -188,7 +188,7 @@ module.exports = {
 			})
 	},
 
-	postMessage: (token, heading, message, type, target) => {
+	post: (token, heading, message, type, target) => {
 		return verifyAndGetUserData(token)
 			.then(userData => {
 				switch (type) {
@@ -206,7 +206,7 @@ module.exports = {
 			})
 	},
 
-	viewMessages: (token, ids) => {
+	view: (token, ids) => {
 		return verifyAndGetUserData(token)
 			.then(userData => {
 				const sql = `
@@ -220,7 +220,7 @@ module.exports = {
 			})
 	},
 
-	deleteMessages: (token, ids) => {
+	delete: (token, ids) => {
 		return verifyAndGetUserData(token)
 			.then(userData => {
 				const sql = `
