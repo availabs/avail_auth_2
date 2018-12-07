@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import { connect } from "react-redux"
 
+import TableContainer from "../../components/TableContainer.react"
+
 import { message } from "../../store/modules/systemMessages.module"
 import { getGroups } from "../../store/modules/groups.module"
 import {
@@ -74,17 +76,18 @@ class User extends Component {
 			assignTo,
 			removeFrom
 		} = this.state;
+		const joinDate = new Date(created_at);
 		return (
 			<tr>
 				<td>{ this.props.email }</td>
-				<td>{ new Date(created_at).toLocaleString() }</td>
+				<td>{ `${ joinDate.getMonth() + 1 }/${ joinDate.getDate() }/${ joinDate.getFullYear() }` }</td>
 				<td>
 					<select value={ removeFrom } id="removeFrom"
 						className="form-control form-control-sm"
 						onChange={ this.onChange.bind(this) }>
-						<option value="'" hidden>Select a group...</option>
+						<option value="" hidden>Select a group...</option>
 						{
-							groups.map(g => <option key={ g }>{ g }</option>)
+							groups.map(g => <option key={ g } value={ g }>{ g }</option>)
 						}
 					</select>
 				</td>
@@ -217,9 +220,11 @@ class UserManagement extends Component {
 		this.props.getRequests();
 		this.props.getUsers();
 	}
+
 	onChange(e) {
 		this.setState({ [e.target.id]: e.target.value })
 	}
+
 	render() {
 		const {
 			groups,
@@ -235,85 +240,66 @@ class UserManagement extends Component {
 		const {
 			groupFilter,
 			searchFilter
-		} = this.state
+		} = this.state;
+		const filteredUsers = users
+			.filter(u => !groupFilter || u.groups.includes(groupFilter))
+    	.filter(u => u.email.toLowerCase().includes(searchFilter.toLowerCase()))
+    	.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf());
 		return (
 			<div className="container">
         <h3>User Management</h3>
         <table className="table table-sm">
           <thead>
           	<tr>
-          		<th colSpan={ 2 }>Search Users</th>
-          		<th colSpan={ 2 }>Group Filter</th>
+          		<th>Search Users</th>
+          		<th>Group Filter</th>
           	</tr>
           	<tr>
-          		<td colSpan={ 2 }>
+          		<td>
           			<input type="text" className="form-control form-control-sm"
           				placeholder="search user emails..." id="searchFilter"
           				onChange={ this.onChange.bind(this) }/>
           		</td>
-          		<td colSpan={ 2 }>
+          		<td>
           			<select className="form-control form-control-sm"
           				onChange={ this.onChange.bind(this) } id="groupFilter">
           				<option value="">None</option>
           				{
           					groups.sort((a, b) => a.name < b.name ? -1 : 1)
-          						.map(g => <option value={ g.name }>{ g.name }</option>)
+          						.map(g => <option value={ g.name } key={ g.name }>{ g.name }</option>)
           				}
           			</select>
           		</td>
           	</tr>
-            <tr>
-              <th>email</th>
-              <th>join date</th>
-              <th>groups</th>
-              <th>remove</th>
-              <th>groups</th>
-              <th>assign</th>
-              <th>delete</th>
-            </tr>
           </thead>
-          <tbody>
-            {
-              users.filter(u => !groupFilter || u.groups.includes(groupFilter))
-              	.filter(u => u.email.toLowerCase().includes(searchFilter.toLowerCase()))
-              	.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf())
-	              .map(u =>
-	                <User key={ u.email } { ...u }
-	                	allGroups={ groups }
-	                	deleteUser={ deleteUser }
-	                	message={ message }
-	                	assign={ assign }
-	                	remove={ remove }/>
-	              )
-            }
-          </tbody>
         </table>
+        <TableContainer
+        	headers={ ["email", "join date", "groups", "remove", "groups", "assign", "delete"] }
+        	rows={
+        		filteredUsers.map(u =>
+	            <User key={ u.email } { ...u }
+	            	allGroups={ groups }
+	            	deleteUser={ deleteUser }
+	            	message={ message }
+	            	assign={ assign }
+	            	remove={ remove }/>
+	          )
+		      }/>
         <h3>Rejected Requests</h3>
-        <table className="table table-sm">
-          <thead>
-            <tr>
-              <th>email</th>
-              <th>project</th>
-              <th>date</th>
-              <th>groups</th>
-              <th>accept</th>
-              <th>delete</th>
-            </tr>
-          </thead>
-          <tbody>
-            {
-              requests.filter(r => r.state === "rejected")
-	              .map(r =>
-	                <RejectedUser key={ r.user_email }
-	                	request={ r }
-	                	groups={ groups }
-	                	accept={ accept }
-                		message={ message }
-                		deleteRequest={ deleteRequest }/>
-	              )
-            }
-          </tbody>
-        </table>
+        <TableContainer
+        	headers={ ["email", "project", "date", "groups", "accept", "delete"] }
+        	rows={
+            requests.filter(r => r.state === "rejected")
+              .map(r =>
+                <RejectedUser key={ r.user_email }
+                	request={ r }
+                	groups={ groups }
+                	accept={ accept }
+              		message={ message }
+              		deleteRequest={ deleteRequest }/>
+              )
+		      }/>
+
 			</div>
 		)
 	}

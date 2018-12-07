@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import { connect } from "react-redux"
 
+import TableContainer from "../../components/TableContainer.react"
+
 import { message } from "../../store/modules/systemMessages.module"
 import {
 	deleteGroup,
@@ -221,61 +223,61 @@ class GroupManagement extends Component {
 			projectFilter
 		} = this.state;
 		return (
-      <div className="container-fluid">
-        <h3>Group Management</h3>
-        <table className="table table-sm">
-          <thead>
-          	<tr>
-          		<th colSpan={ 3 }>
-          			Search Groups
-          		</th>
-          		<th colSpan={ 3 }>
-          			Project Filter
-          		</th>
-          	</tr>
-          	<tr>
-          		<td colSpan={ 3 }>
-          			<input type="text" placeholder="search group names..."
-          				className="form-control form-control-sm"
-          				id="searchFilter" value={ searchFilter }
-          				onChange={ this.onChange.bind(this) }/>
-          		</td>
-          		<td colSpan={ 3 }>
-          			<select className="form-control form-control-sm"
-          				onChange={ this.onChange.bind(this) } id="projectFilter">
-          				<option value="">None</option>
-          				{
-          					projects.sort((a, b) => a.name < b.name ? -1 : 1)
-          						.map(g => <option value={ g.name }>{ g.name }</option>)
-          				}
-          			</select>
-          		</td>
-          	</tr>
-            <tr>
-              <th>name</th>
-              <th>created by</th>
-              <th>created at</th>
-
-              <th>projects</th>
-              <th>authority</th>
-              <th>adjust</th>
-
-              <th>projects</th>
-              <th>authority</th>
-              <th>assign</th>
-
-              <th>projects</th>
-              <th>remove</th>
-
-              <th>delete</th>
-            </tr>
-          </thead>
-          <tbody>
-            {
-              groups
-              	.filter(g => g.name.toLowerCase().includes(searchFilter.toLowerCase()))
-              	.filter(g => !projectFilter || g.projects.reduce((a, c) => a || c.name === projectFilter, false))
-              	.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf())
+			<div>
+				<div className="container">
+	        <h3>Group Management</h3>
+	        <table className="table table-sm">
+	          <thead>
+	          	<tr>
+	          		<th colSpan={ 3 }>
+	          			Search Groups
+	          		</th>
+	          		<th colSpan={ 3 }>
+	          			Project Filter
+	          		</th>
+	          	</tr>
+	          	<tr>
+	          		<td colSpan={ 3 }>
+	          			<input type="text" placeholder="search group names..."
+	          				className="form-control form-control-sm"
+	          				id="searchFilter" value={ searchFilter }
+	          				onChange={ this.onChange.bind(this) }/>
+	          		</td>
+	          		<td colSpan={ 3 }>
+	          			<select className="form-control form-control-sm"
+	          				onChange={ this.onChange.bind(this) } id="projectFilter">
+	          				<option value="">None</option>
+	          				{
+	          					projects.sort((a, b) => a.name < b.name ? -1 : 1)
+	          						.map(g => <option value={ g.name }>{ g.name }</option>)
+	          				}
+	          			</select>
+	          		</td>
+	          	</tr>
+	          </thead>
+	        </table>
+			  </div>
+	      <div className="container-fluid">
+	        <TableContainer
+	        	headers={[
+	            "name",
+	            "created by",
+	            "created at",
+	            "projects",
+	            "authority",
+	            "adjust",
+	            "projects",
+	            "authority",
+	            "assign",
+	            "projects",
+	            "remove",
+	            "delete"
+	        	]}
+	        	rows={
+	            groups
+	            	.filter(g => g.name.toLowerCase().includes(searchFilter.toLowerCase()))
+	            	.filter(g => !projectFilter || g.projects.reduce((a, c) => a || c.name === projectFilter, false))
+	            	.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf())
 	              .map(g =>
 	                <Group key={ g.name } { ...g }
 	                	authLevel={ this.props.user.authLevel }
@@ -286,26 +288,27 @@ class GroupManagement extends Component {
 	                	deleteGroup={ this.props.deleteGroup }
 	                	adjustAuthLevel={ this.props.adjustAuthLevel }/>
 	              )
-            }
-          </tbody>
-        </table>
-        <h3>Create A New Group</h3>
-        <form onSubmit={ this.validate.bind(this) }>
-        	<div className="form-group row">
-        		<div className="col-4"/>
-        		<div className="col-4">
-		        	<input id="name" type="text"
-		        		onChange={ this.onChange.bind(this) }
-		        		placeholder="group name..."
-		        		className="form-control form-control-sm"
-		        		value={ this.state.name }/>
+	        	}/>
+				</div>
+				<div className="container">
+	        <h3>Create A New Group</h3>
+	        <form onSubmit={ this.validate.bind(this) }>
+	        	<div className="form-group row">
+	        		<div className="col-4"/>
+	        		<div className="col-4">
+			        	<input id="name" type="text"
+			        		onChange={ this.onChange.bind(this) }
+			        		placeholder="group name..."
+			        		className="form-control form-control-sm"
+			        		value={ this.state.name }/>
+			        </div>
 		        </div>
-	        </div>
-        	<div>
-	        	<input type="submit" value="create"
-	        		className="btn btn-sm btn-primary"/>
-	        </div>
-        </form>
+	        	<div>
+		        	<input type="submit" value="create"
+		        		className="btn btn-sm btn-primary"/>
+		        </div>
+	        </form>
+				</div>
 			</div>
 		)
 	}

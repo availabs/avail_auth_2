@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import { connect } from "react-redux"
 
+import TableContainer from "../../components/TableContainer.react"
+
 import {
   getRequests,
   accept,
@@ -95,29 +97,18 @@ class PendingRequests extends Component {
     return (
       <div className="container">
         <h3>Pending Requests</h3>
-        <table className="table table-sm">
-          <thead>
-            <tr>
-              <th>request email</th>
-              <th>project name</th>
-              <th>request date</th>
-              <th>group</th>
-              <th>actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {
-              pending.map((r, i) =>
-                <RequestItem key={ i } request={ r }
-                  accept={ this.props.accept }
-                  reject={ this.props.reject }
-                  groups={ groups }
-                  user={ this.props.user }
-                  message={ this.props.message }/>
-              )
-            }
-          </tbody>
-        </table>
+        <TableContainer
+          headers={ ["request email", "project name", "request date", "group", "actions"] }
+          rows={
+            pending.map((r, i) =>
+              <RequestItem key={ i } request={ r }
+                accept={ this.props.accept }
+                reject={ this.props.reject }
+                groups={ groups }
+                user={ this.props.user }
+                message={ this.props.message }/>
+            )
+          }/>
       </div>
     )
   }

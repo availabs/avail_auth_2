@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import { connect } from "react-redux"
 
+import TableContainer from "../../components/TableContainer.react"
+
 import { message } from "../../store/modules/systemMessages.module"
 import {
 	create,
@@ -77,27 +79,17 @@ class ProjectManagement extends Component {
 		return (
       <div className="container">
         <h3>Project Management</h3>
-        <table className="table table-sm">
-          <thead>
-            <tr>
-              <th>name</th>
-              <th>created by</th>
-              <th>created at</th>
-              <th>delete</th>
-            </tr>
-          </thead>
-          <tbody>
-            {
-              this.props.projects
-              	.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf())
-	              .map(p =>
-	              	<Project key={ p.name } { ...p }
-	              		message={ this.props.message }
-	              		deleteProject={ this.props.deleteProject }/>
-	              )
-            }
-          </tbody>
-        </table>
+        <TableContainer
+        	headers={ ["name", "created by", "created at", "delete"] }
+        	rows={[
+            this.props.projects
+            	.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf())
+              .map(p =>
+              	<Project key={ p.name } { ...p }
+              		message={ this.props.message }
+              		deleteProject={ this.props.deleteProject }/>
+              )
+        	]}/>
         <h3>Create A New Project</h3>
         <form onSubmit={ this.validate.bind(this) }>
         	<div className="form-group row">

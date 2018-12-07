@@ -28,9 +28,6 @@ class LandingView extends Component {
     }
   }
 
-  componentWillUnmount() {
-  }
-
   setView(view) {
     this.setState({ view });
     if (localStorage) {
