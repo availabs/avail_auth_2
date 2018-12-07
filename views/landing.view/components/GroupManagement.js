@@ -249,7 +249,7 @@ class GroupManagement extends Component {
 	          				<option value="">None</option>
 	          				{
 	          					projects.sort((a, b) => a.name < b.name ? -1 : 1)
-	          						.map(g => <option value={ g.name }>{ g.name }</option>)
+	          						.map(g => <option value={ g.name } key={ g.name }>{ g.name }</option>)
 	          				}
 	          			</select>
 	          		</td>

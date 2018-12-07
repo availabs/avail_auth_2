@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
 import { connect } from "react-redux"
 
+import TableContainer from "../../components/TableContainer.react"
+
 import MarkdownRenderer from 'react-markdown-renderer';
 
 import {
@@ -145,11 +147,10 @@ class Message extends Component {
 			created_by,
 			viewed,
 			opened,
-			toggle,
-			i
+			toggle
 		} = this.props;
 		return (
-			<tr onClick={ () => toggle(i) }>
+			<tr onClick={ toggle }>
 				<td>
 					<div className={ `message${ viewed ? ' viewed' : '' }` }>
 						<div>
@@ -185,7 +186,6 @@ class Home extends Component {
 			message: "",
 			type: "",
 			target: "",
-			show: "less",
 			openMessage: -1
 		}
 	}
@@ -241,16 +241,8 @@ class Home extends Component {
 			this.setState({ heading: "", message: "", type: "", target: "" });
 		}
 	}
-	toggleShow() {
-		let show = "less";
-		if (this.state.show === "less") {
-			show = "all";
-		}
-		this.setState({ show });
-	}
   render() {
   	const {
-  		show,
   		openMessage
   	} = this.state
   	const {
@@ -262,11 +254,6 @@ class Home extends Component {
     return (
       <div className='container'>
         <div style={ { position: "relative" } }>
-        	<button className="btn btn-sm btn-primary"
-        		onClick={ e => this.toggleShow() }
-        		style={ { position: "absolute", top: "4px", left: "13px" } }>
-        	 	{ show === "less" ? "show all..." : "show less..." }
-        	</button>
         	<h3>Welcome</h3>
         	<button className="btn btn-sm btn-success"
         		onClick={ e => this.showOverlay() }
@@ -274,25 +261,19 @@ class Home extends Component {
         	 	compose message
         	</button>
         </div>
-        <table className='table table-condensed'>
-        	<thead>
-        	</thead>
-          <tbody>
-          	{
-          		messages
-          			.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf())
-          			.slice(0, show === "less" ? 5 : messages.length)
-          			.map((m, i) =>
-          				<Message key={ m.id } { ...m } i={ i }
-          					view={ this.props.viewMessages }
-          					sendMessage={ this.props.message }
-          					delete={ this.props.deleteMessages }
-          					toggle={ this.toggleOpenMessage.bind(this) }
-          					opened={ openMessage === i }/>
-          			)
-          	}
-          </tbody>
-        </table>
+        <TableContainer
+        	rows={
+        		messages
+        			.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf())
+        			.map((m, i) =>
+        				<Message key={ m.id } { ...m }
+        					view={ this.props.viewMessages }
+        					sendMessage={ this.props.message }
+        					delete={ this.props.deleteMessages }
+        					toggle={ this.toggleOpenMessage.bind(this, i) }
+        					opened={ openMessage === i }/>
+        			)
+        		}/>
         <Overlay state={ this.state.overlay }
         	dismiss={ () => this.dismissOverlay() }
         	acceptLabel="Send Message"

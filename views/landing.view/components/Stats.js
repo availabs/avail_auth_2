@@ -108,7 +108,7 @@ class Stats extends Component {
         }
       }
     }) // END logins.forEach
-console.log(weekData)
+// console.log(weekData)
     let lineData = [
       {
         id: "7 days",

@@ -72,7 +72,7 @@ class TableContainer extends Component {
 	      		<tr>
 	        		<th colSpan={ headers.length } style={ { textAlign: "left" } }>
 	        			<div className="btn-group">
-	          			<button onClick={ () => this.setPage.bind(this, 0) }
+	          			<button onClick={ this.setPage.bind(this, 0) }
 	          						className="btn btn-sm btn-primary" style={ { width: "4rem" } }>
 	          				first
 	          			</button>
@@ -92,7 +92,7 @@ class TableContainer extends Component {
 	          						className="btn btn-sm btn-primary" style={ { width: "4rem" } }>
 	          				next
 	          			</button>
-	          			<button onClick={ () => this.setPage.bind(this, maxPage) }
+	          			<button onClick={ this.setPage.bind(this, maxPage) }
 	          						className="btn btn-sm btn-primary" style={ { width: "4rem" } }>
 	          				last
 	          			</button>
