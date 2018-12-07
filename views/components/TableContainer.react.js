@@ -83,7 +83,7 @@ class TableContainer extends Component {
 	          			{
 	          				pagination.map(p =>
 	          					<button key={ p } onClick={ () => this.setState({ page: p }) }
-	          						className="btn btn-sm btn-primary" style={ { width: "3rem" } }>
+	          						className={ `btn btn-sm ${ page === p ? 'btn-info' : 'btn-primary' }` } style={ { width: "3rem" } }>
 	          						{ p + 1 }
 	          					</button>
 	          				)

@@ -60,35 +60,42 @@ class LandingView extends Component {
     if (authed) {
       headerItems.push({
         onClick: () => this.setView("home"),
-        label: "home"
+        label: "home",
+        key: 'home'
       })
     }
     if (authed && (authLevel > 0)) {
       headerItems.push(
         { onClick: () => this.setView("pending"),
-          label: "pending requests" },
+          label: "pending requests",
+          key: 'pending' },
         { onClick: () => this.setView("users"),
-          label: "user management" },
+          label: "user management",
+          key: 'users' },
         { onClick: () => this.setView("groups"),
-          label: "group management" }
+          label: "group management",
+          key: 'groups' }
       )
     }
     if (authed && (authLevel === 10)) {
       headerItems.push({
         onClick: () => this.setView("projects"),
-        label: "project management"
+        label: "project management",
+        key: 'projects'
       })
     }
     if (authed && (authLevel > 0)) {
       headerItems.push({
         onClick: () => this.setView("stats"),
-        label: 'stats'
+        label: 'stats',
+        key: 'stats'
       })
     }
     if (authed) {
       headerItems.push(
         { onClick: () => this.setView("update"),
-          label: "update password"
+          label: "update password",
+          key: 'update'
         },
         { onClick: () => {
             this.props.message(
@@ -100,7 +107,8 @@ class LandingView extends Component {
               }
             )
           },
-          label: "logout"
+          label: "logout",
+          key: 'logout'
         }
       )
     }
@@ -116,7 +124,8 @@ class LandingView extends Component {
       ];
   	return (
       <App headerItems={ this.createHeaderNav() }
-        links={ links }>
+        links={ links }
+        current={ this.state.view }>
         { authed ? null :
           <Login />
         }

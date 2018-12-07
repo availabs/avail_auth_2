@@ -21,16 +21,17 @@ class App extends Component {
     setTimeout(() => classList.remove('inactive'), 300);
   }
 	render() {
+    const { current } = this.props;
   	return (
     		<div className="App">
       		<header className="App-header">
         			<h1 className="App-title">AVAIL Auth</h1>
               <div className="btn-group btn-group-sm">
                 {
-                  this.props.headerItems.map(({ onClick, label }, i) =>
-                    <button key={ i } onClick={ onClick }
-                      className="btn btn-sm btn-primary">
-                      { label }
+                  this.props.headerItems.map(({ onClick, label, key }) =>
+                    <button key={ key } onClick={ onClick }
+                      className={ `btn btn-sm ${ current === key ? 'btn-info' : 'btn-primary' }` }>
+                      { label } {key}
                     </button>
                   )
                 }
