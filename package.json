@@ -31,6 +31,7 @@
     "webpack-cli": "^3.1.1"
   },
   "scripts": {
+    "build": "webpack --mode=production",
     "start": "webpack --mode=production && node index.js",
     "start:dev": "webpack --mode=development && node index.js",
     "watch": "nodemon --ignore static --exec npm run start:dev"
