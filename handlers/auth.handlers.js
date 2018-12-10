@@ -29,7 +29,7 @@ module.exports = {
 			return res.json({ error: "You must supply an email and project." });
 		}
 		utils.signupRequest(email, project)
-			.then(user => res.json({ message: "Your request is pending." }))
+			.then(user => res.json({ message: "Your request is pending. You should receive an email shortly." }))
 			.catch(error => res.json({ error: error.message }));
 	},
 	signupAccept: (req, res) => {

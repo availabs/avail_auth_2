@@ -214,25 +214,39 @@ module.exports = {
 		return query(sql, [email])
 			.then(rows => +rows[0].count)
 			.then(count => {
-console.log(sql,email,count)
 				if (count === 0) {
 					const sql = `
-						INSERT INTO signup_requests(user_email, project_name)
-						VALUES ($1, $2);
+						SELECT count(1) AS count
+						FROM signup_requests
+						WHERE user_email = $1
+						AND project_name = $2;
 					`
 					return query(sql, [email, project_name])
-						.then(() => send(email,
-													"Invite Request.",
-													`Your request to project ${ project_name } has been received and is pending.`,
-													htmlTemplateNoClick(
-														'Thank you.',
-														`Your request to project ${ project_name } has been received and is pending.`
-													)
-												)
-						);
+						.then(rows => +rows[0].count)
+						.then(count => {
+							if (count === 0) {
+								const sql = `
+									INSERT INTO signup_requests(user_email, project_name)
+									VALUES ($1, $2);
+								`
+								return query(sql, [email, project_name])
+									.then(() => send(email,
+																"Invite Request.",
+																`Your request to project ${ project_name } has been received and is pending.`,
+																htmlTemplateNoClick(
+																	'Thank you.',
+																	`Your request to project ${ project_name } has been received and is pending.`
+																)
+															)
+									);
+							}
+							else {
+								throw new Error(`You already have a pending request for this project.`)
+							}
+						})
 				}
 				else {
-					throw new Error(`You already have access to project ${ project_name }.`);
+					throw new Error(`You already have access to this project.`);
 				}
 			})
 	},
