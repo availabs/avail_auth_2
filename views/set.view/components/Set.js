@@ -64,7 +64,7 @@ class Set extends Component {
     } = this.state;
     return (
       <div className="container">
-        <h3>Set Password</h3>
+        <h3>Set New Password</h3>
         <form onSubmit={ this.valdiate.bind(this) }>
 
           <div className="form-group row">
@@ -74,7 +74,7 @@ class Set extends Component {
             <div className="col-5">
               <input type="password" id="password"
                 onChange={ this.onChange.bind(this) }
-                placeholder="enter password..."
+                placeholder="enter new password..."
                 className="form-control form-control-sm"
                 value={ password }/>
             </div>
@@ -87,7 +87,7 @@ class Set extends Component {
             <div className="col-5">
               <input type="password" id="password_confirm"
                 onChange={ this.onChange.bind(this) }
-                placeholder="confirm password..."
+                placeholder="confirm new password..."
                 className="form-control form-control-sm"
                 value={ password_confirm }/>
             </div>

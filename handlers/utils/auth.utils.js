@@ -300,10 +300,10 @@ module.exports = {
 																	send(
 																		user_email,
 																		"Invite Request.",
-																		`Your request to project "${ project_name }" has been accepted. Your temporary password is: ${ password }`,
+																		`Your request to project "${ project_name }" has been accepted. Your password is: ${ password }`,
 																		htmlTemplate(
 																			`Your request to project "${ project_name }" has been accepted.`,
-																			`<div>Your temporary password is:</div><div><b>${ password }</b></div>`,
+																			`<div>Your password is:</div><div><b>${ password }</b></div><div>The following link will remain active for 6 hours...</div>`,
 																			`${ host }/password/set/${ token }`,
 																			"Click here to set a new password"
 																		)
