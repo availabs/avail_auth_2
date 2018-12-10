@@ -31,7 +31,7 @@ class App extends Component {
                   this.props.headerItems.map(({ onClick, label, key }) =>
                     <button key={ key } onClick={ onClick }
                       className={ `btn btn-sm ${ current === key ? 'btn-info' : 'btn-primary' }` }>
-                      { label } {key}
+                      { label }
                     </button>
                   )
                 }

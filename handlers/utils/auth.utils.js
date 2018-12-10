@@ -212,8 +212,9 @@ module.exports = {
 			WHERE user_email = $1;
 		`
 		return query(sql, [email])
-			.then(rows => rows[0].count)
+			.then(rows => +rows[0].count)
 			.then(count => {
+console.log(sql,email,count)
 				if (count === 0) {
 					const sql = `
 						INSERT INTO signup_requests(user_email, project_name)

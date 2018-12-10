@@ -124,8 +124,8 @@ class LandingView extends Component {
       ];
   	return (
       <App headerItems={ this.createHeaderNav() }
-        links={ links }
-        current={ this.state.view }>
+        current={ this.state.view }
+        links={ links }>
         { authed ? null :
           <Login />
         }

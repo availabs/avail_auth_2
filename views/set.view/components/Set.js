@@ -50,11 +50,11 @@ class Set extends Component {
     }
   }
   passwordSet() {
-    const onSet = () => {
-      this.props.message("Redirecting to landing...");
-      setTimeout(() => document.location.href = 'http://localhost:3333/', 5000);
-    }
-    this.props.passwordSet(this.state.password, onSet);
+    // const onSet = () => {
+    //   this.props.message("Redirecting to landing...");
+    //   setTimeout(() => document.location.href = 'http://localhost:3333/', 5000);
+    // }
+    this.props.passwordSet(this.state.password);//, onSet);
     this.reset();
   }
   render() {
