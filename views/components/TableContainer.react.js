@@ -102,7 +102,19 @@ class TableContainer extends Component {
 	        }
       		<tr>
       			{
-      				headers.map((h, i) => <th key={ i }>{ h }</th>)
+      				headers.map((h, i) => {
+      					if (typeof h.onClick === "function") {
+      						return (
+      							<th key={ i }>
+      								<button onClick={ h.onClick }
+      									className={ `btn btn-sm btn-${ h.color || 'primary' }` }>
+      									{ h.label }
+      								</button>
+      							</th>
+      						)
+      					}
+      					return <th key={ i }>{ h }</th>
+      				})
       			}
       		</tr>
       	</thead>

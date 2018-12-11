@@ -50,11 +50,6 @@ class ProjectManagement extends Component {
 	}
 	componentDidMount() {
 		this.props.getProjects();
-		this.reset();
-	}
-	reset() {
-		this.setState({ name: "" });
-		document.getElementById("name").focus();
 	}
 	onChange(e) {
 		this.setState({ [e.target.id]: e.target.value });
@@ -73,7 +68,7 @@ class ProjectManagement extends Component {
 	}
 	create() {
 		this.props.create(this.state.name);
-		this.reset();
+		this.setState({ name: "" });
 	}
 	render() {
 		return (

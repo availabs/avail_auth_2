@@ -11,6 +11,8 @@ import {
   message
 } from "../../store/modules/systemMessages.module"
 
+import TableContainer from "../../components/TableContainer.react"
+
 const days = [0, 1, 2, 3, 4, 5, 6],
   dayNames = ["sunday", "monday", "tuesday", "wednesday", "thursday", "friday", "saturday"],
   getDayOfWeek = index => {
@@ -34,7 +36,8 @@ class Stats extends Component {
   constructor(props) {
     super(props);
     this.state = {
-      userSort: "_7days"
+      userSort: "_7days",
+      projectFilter: ""
     }
   }
   componentDidMount() {
@@ -62,52 +65,61 @@ class Stats extends Component {
       })
     }
 
-    logins.forEach(login => {
-      const user = login.user_email,
-        date = new Date(login.created_at);
-      date.setHours(12, 0, 0, 0);
-      const value = date.valueOf(),
-        days = Math.floor((now - value) / day);
-      if (!(user in userData)) {
-        userData[user] = {
-          _7days: 0,
-          _14days: 0,
-          _21days: 0,
-          _28days: 0
+    const projects = {}
+
+    logins.forEach(login => { projects[login.project_name] = true; })
+
+    const { projectFilter } = this.state;
+
+    const filtered = logins.filter(login => !projectFilter || (login.project_name === projectFilter));
+    
+    filtered.forEach(login => {
+        const user = login.user_email,
+          date = new Date(login.created_at);
+
+        date.setHours(12, 0, 0, 0);
+        const value = date.valueOf(),
+          days = Math.floor((now - value) / day);
+        if (!(user in userData)) {
+          userData[user] = {
+            _7days: 0,
+            _14days: 0,
+            _21days: 0,
+            _28days: 0
+          }
         }
-      }
-      if (days <= 7) {
-        userData[user]["_7days"] += 1;
-      }
-      if (days <= 14) {
-        userData[user]["_14days"] += 1;
-      }
-      if (days <= 21) {
-        userData[user]["_21days"] += 1;
-      }
-      if (days <= 28) {
-        userData[user]["_28days"] += 1;
-      }
-      for (let i = 0; i <= 7; ++i) {
-        const _dow = todayDow - i,//getDayOfWeek(todayDow - i),
-          _now = now - day * i,
-          _days = Math.floor((_now - value) / day);
-        weekData[i].dow = _dow;
-        if (_days < 0) continue;
-        if (_days <= 7) {
-          weekData[i]["_7days"] += 1;
+        if (days <= 7) {
+          userData[user]["_7days"] += 1;
         }
-        if (_days <= 14) {
-          weekData[i]["_14days"] += 1;
+        if (days <= 14) {
+          userData[user]["_14days"] += 1;
         }
-        if (_days <= 21) {
-          weekData[i]["_21days"] += 1;
+        if (days <= 21) {
+          userData[user]["_21days"] += 1;
         }
-        if (_days <= 28) {
-          weekData[i]["_28days"] += 1;
+        if (days <= 28) {
+          userData[user]["_28days"] += 1;
         }
-      }
-    }) // END logins.forEach
+        for (let i = 0; i <= 7; ++i) {
+          const _dow = todayDow - i,//getDayOfWeek(todayDow - i),
+            _now = now - day * i,
+            _days = Math.floor((_now - value) / day);
+          weekData[i].dow = _dow;
+          if (_days < 0) continue;
+          if (_days <= 7) {
+            weekData[i]["_7days"] += 1;
+          }
+          if (_days <= 14) {
+            weekData[i]["_14days"] += 1;
+          }
+          if (_days <= 21) {
+            weekData[i]["_21days"] += 1;
+          }
+          if (_days <= 28) {
+            weekData[i]["_28days"] += 1;
+          }
+        }
+      }) // END logins.forEach
 // console.log(weekData)
     let lineData = [
       {
@@ -149,72 +161,61 @@ class Stats extends Component {
         y: d._28days
       })
     })
-    return { userData, lineData: logins.length ? lineData : [] };
+    return {
+      userData,
+      projects: Object.keys(projects),
+      lineData: filtered.length ? lineData : []
+    };
+  }
+  onChange(e) {
+    this.setState({ [e.target.id]: e.target.value });
   }
   render() {
     const {
       userData,
-      lineData
+      lineData,
+      projects
     } = this.processLogins();
     const {
-      userSort
+      userSort,
+      projectFilter
     } = this.state;
     return (
       <div className="container">
         <h3>Stats</h3>
-        <table className="table table-sm">
-          <thead>
-            <tr>
-              <th>user</th>
-              <th>
-                <button className={ `btn btn-sm btn-${ userSort === "_7days" ? 'success' : 'primary' }` }
-                  onClick={ () => this.setUserSort("_7days") }>
-                  7 days
-                </button>
-              </th>
-              <th>
-                <button className={ `btn btn-sm btn-${ userSort === "_14days" ? 'success' : 'primary' }` }
-                  onClick={ () => this.setUserSort("_14days") }>
-                  14 days
-                </button>
-              </th>
-              <th>
-                <button className={ `btn btn-sm btn-${ userSort === "_21days" ? 'success' : 'primary' }` }
-                  onClick={ () => this.setUserSort("_21days") }>
-                  21 days
-                </button>
-              </th>
-              <th>
-                <button className={ `btn btn-sm btn-${ userSort === "_28days" ? 'success' : 'primary' }` }
-                  onClick={ () => this.setUserSort("_28days") }>
-                  28 days
-                </button>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {
-              Object.keys(userData)
-                .sort((a, b) => userData[b][userSort] - userData[a][userSort])
-                .map(user =>
-                  <tr key={ user }>
-                    <td>{ user }</td>
-                    <td>{ userData[user]["_7days"] }</td>
-                    <td>{ userData[user]["_14days"] }</td>
-                    <td>{ userData[user]["_21days"] }</td>
-                    <td>{ userData[user]["_28days"] }</td>
-                  </tr>
-                )
-            }
-          </tbody>
-        </table>
+        <div className="row">
+          <div className="col-4"/>
+          <div className="col-4">
+            <table className="table table-sm">
+              <thead>
+                <tr>
+                  <th>
+                    Project Filter
+                  </th>
+                </tr>
+                <tr>
+                  <td>
+                    <select onChange={ this.onChange.bind(this) }
+                      value={ projectFilter } id="projectFilter"
+                      className="form-control form-control-sm">
+                      <option value="">No Project Filter</option>
+                      {
+                        projects.map(p => <option key={ p } value={ p }>{ p }</option>)
+                      }
+                    </select>
+                  </td>
+                </tr>
+              </thead>
+            </table>
+          </div>
+        </div>
         <div style={ { width: "100%", height: "400px" } }>
           <ResponsiveLine data={ lineData.slice() }
             stacked={ false }
             margin={ {
-                "top": 50,
+                "top": 25,
                 "right": 100,
-                "bottom": 50,
+                "bottom": 75,
                 "left": 75
             } }
             colors={ lineData.map(d => d.color) }
@@ -276,6 +277,36 @@ class Stats extends Component {
                 }
             ] }/>
         </div>
+        <TableContainer
+          headers={[
+            "user",
+            { label: "7 days",
+              onClick: () => this.setUserSort("_7days"),
+              color: userSort === "_7days" ? 'success' : 'primary' },
+            { label: "14 days",
+              onClick: () => this.setUserSort("_14days"),
+              color: userSort === "_14days" ? 'success' : 'primary' },
+            { label: "21 days",
+              onClick: () => this.setUserSort("_21days"),
+              color: userSort === "_21days" ? 'success' : 'primary' },
+            { label: "28 days",
+              onClick: () => this.setUserSort("_28days"),
+              color: userSort === "_28days" ? 'success' : 'primary' }
+          ]}
+          rows={[
+            Object.keys(userData)
+              .sort((a, b) => userData[b][userSort] - userData[a][userSort])
+              .map(user =>
+                <tr key={ user }>
+                  <td>{ user }</td>
+                  <td>{ userData[user]["_7days"] }</td>
+                  <td>{ userData[user]["_14days"] }</td>
+                  <td>{ userData[user]["_21days"] }</td>
+                  <td>{ userData[user]["_28days"] }</td>
+                </tr>
+              )
+          ]}
+        />
       </div>
     )
   }

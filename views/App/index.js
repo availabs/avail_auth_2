@@ -28,10 +28,10 @@ class App extends Component {
         			<h1 className="App-title">AVAIL Auth</h1>
               <div className="btn-group btn-group-sm">
                 {
-                  this.props.headerItems.map(({ onClick, label, key }) =>
+                  this.props.headerItems.map(({ onClick, label, key, alert=false }) =>
                     <button key={ key } onClick={ onClick }
                       className={ `btn btn-sm ${ current === key ? 'btn-info' : 'btn-primary' }` }>
-                      { label }
+                      { label }{ alert ? <span style={ { color: "orange", marginLeft: "5px" } } className="fa fa-exclamation"/> : <span /> }
                     </button>
                   )
                 }

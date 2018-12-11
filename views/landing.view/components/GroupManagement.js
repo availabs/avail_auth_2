@@ -214,6 +214,7 @@ class GroupManagement extends Component {
 		errors.forEach(e => this.props.message(e));
 		if (!errors.length) {
 			this.props.create(this.state.name);
+			this.setState({ name: "" })
 		}
 	}
 	render() {

@@ -82,11 +82,8 @@ class RequestItem extends Component {
 
 class PendingRequests extends Component {
   componentDidMount() {
-    const { token } = this.props.user;
-    if (token) {
-      this.props.getGroups(token);
-      this.props.getRequests(token);
-    }
+    this.props.getGroups();
+    this.props.getRequests();
   }
   render() {
     const {

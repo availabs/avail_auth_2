@@ -15,16 +15,35 @@ import UserManagement from "./components/UserManagement"
 import { message } from "../store/modules/systemMessages.module"
 import { logout } from "../store/modules/user.module"
 
+import { getRequests } from "../store/modules/requests.module"
+
+import { getMessages } from "../store/modules/messages.module"
+
 import '../styles/main.css';
 
 class LandingView extends Component {
   constructor(props) {
     super(props)
     this.state = {
-      view: "home"
+      view: "home",
+      interval: null
     }
     if (localStorage && localStorage.getItem("landing-state")) {
       this.state = JSON.parse(localStorage.getItem("landing-state"));
+    }
+  }
+  componentDidMount() {
+    this.props.getMessages();
+    this.props.getRequests();
+    const interval = setInterval(
+      () => { this.props.getMessages(); this.props.getRequests(); }
+      , 30000
+    )
+    this.setState({ interval })
+  }
+  componentWillUnmount() {
+    if (this.state.interval) {
+      clearInterval(this.state.interval);
     }
   }
 
@@ -61,14 +80,16 @@ class LandingView extends Component {
       headerItems.push({
         onClick: () => this.setView("home"),
         label: "home",
-        key: 'home'
+        key: 'home',
+        alert: this.props.messages.filter(m => !m.viewed).length
       })
     }
     if (authed && (authLevel > 0)) {
       headerItems.push(
         { onClick: () => this.setView("pending"),
           label: "pending requests",
-          key: 'pending' },
+          key: 'pending',
+          alert: this.props.requests.filter(r => r.state === "pending").length },
         { onClick: () => this.setView("users"),
           label: "user management",
           key: 'users' },
@@ -113,7 +134,7 @@ class LandingView extends Component {
       )
     }
 
-    return headerItems
+    return headerItems;
   }
 	render() {
 		const { authed, authLevel } = this.props.user,
@@ -126,11 +147,8 @@ class LandingView extends Component {
       <App headerItems={ this.createHeaderNav() }
         current={ this.state.view }
         links={ links }>
-        { authed ? null :
+        { authed ? this.getView() :
           <Login />
-        }
-        { !authed ? null :
-          this.getView()
         }
       </App>
   	);
@@ -138,12 +156,16 @@ class LandingView extends Component {
 }
 
 const mapStateToProps = state => ({
-	user: state.user
+	user: state.user,
+  requests: state.requests,
+  messages: state.messages
 })
 
 const mapDispatchToProps = {
 	logout,
-  message
+  message,
+  getRequests,
+  getMessages
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(LandingView);

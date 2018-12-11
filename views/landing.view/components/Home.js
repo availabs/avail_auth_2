@@ -189,10 +189,11 @@ class Home extends Component {
 			openMessage: -1
 		}
 	}
-	toggleOpenMessage(i) {
+	toggleOpenMessage(i, id) {
 		let openMessage = -1;
 		if (i !== this.state.openMessage) {
 			openMessage = i;
+			this.props.viewMessages(id);
 		}
 		this.setState({ openMessage });
 	}
@@ -270,7 +271,7 @@ class Home extends Component {
         					view={ this.props.viewMessages }
         					sendMessage={ this.props.message }
         					delete={ this.props.deleteMessages }
-        					toggle={ this.toggleOpenMessage.bind(this, i) }
+        					toggle={ this.toggleOpenMessage.bind(this, i, m.id) }
         					opened={ openMessage === i }/>
         			)
         		}/>
