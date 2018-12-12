@@ -98,16 +98,15 @@ const getUserAuthLevel = (email, project) => {
 	return query(sql, [email, project])
 		.then(rows => rows[0].auth_level || 0)
 }
-const getUser = (email, password, project) => {
-	return getUserGroups(email, project)
-		.then(groups => {
-			return getUserAuthLevel(email, project)
-				.then(authLevel => {
-					return sign(email, password)
+const getUser = (email, password, project) =>
+	getUserGroups(email, project)
+		.then(groups =>
+			getUserAuthLevel(email, project)
+				.then(authLevel =>
+					sign(email, password)
 						.then(token => ({ groups, authLevel, token }))
-				})
-		})
-}
+				)
+		)
 
 const hasProjectAccess = (email, project) => {
 	const sql = `
@@ -142,7 +141,6 @@ const verifyAndGetUserData = token => {
 							reject(new Error("Could not find user data."));
 						}
 					})
-					.catch(reject)
 			})
 			.catch(() => reject(new Error("Token could not be verified.")))
 	})
@@ -169,9 +167,8 @@ module.exports = {
 										INSERT INTO logins(user_email, project_name)
 										VALUES ($1, $2);
 									`
-									query(sql, [email, project])
-										.then(() => resolve(getUser(email, userData.password, project)))
-										.catch(reject);
+									return query(sql, [email, project])
+										.then(() => resolve(getUser(email, userData.password, project)));
 								}
 								else {
 									reject(new Error(`You do not have access to project ${ project }.`));
@@ -206,18 +203,18 @@ module.exports = {
 	signupRequest: (email, project_name) => {
 		const sql = `
 			SELECT count(1) AS count
-			FROM users_in_groups AS uig
-			INNER JOIN groups_in_projects AS gip
-			ON uig.group_name = gip.group_name
-			WHERE user_email = $1;
+			FROM projects
+			WHERE name = $1;
 		`
-		return query(sql, [email])
+		return query(sql, [project_name])
 			.then(rows => +rows[0].count)
 			.then(count => {
-				if (count === 0) {
+				if (count) {
 					const sql = `
 						SELECT count(1) AS count
-						FROM signup_requests
+						FROM users_in_groups AS uig
+						INNER JOIN groups_in_projects AS gip
+						ON uig.group_name = gip.group_name
 						WHERE user_email = $1
 						AND project_name = $2;
 					`
@@ -226,27 +223,42 @@ module.exports = {
 						.then(count => {
 							if (count === 0) {
 								const sql = `
-									INSERT INTO signup_requests(user_email, project_name)
-									VALUES ($1, $2);
+									SELECT count(1) AS count
+									FROM signup_requests
+									WHERE user_email = $1
+									AND project_name = $2;
 								`
 								return query(sql, [email, project_name])
-									.then(() => send(email,
-																"Invite Request.",
-																`Your request to project ${ project_name } has been received and is pending.`,
-																htmlTemplateNoClick(
-																	'Thank you.',
-																	`Your request to project ${ project_name } has been received and is pending.`
-																)
-															)
-									);
+									.then(rows => +rows[0].count)
+									.then(count => {
+										if (count === 0) {
+											const sql = `
+												INSERT INTO signup_requests(user_email, project_name)
+												VALUES ($1, $2);
+											`
+											return query(sql, [email, project_name])
+												.then(() => send(email,
+																			"Invite Request.",
+																			`Your request to project ${ project_name } has been received and is pending.`,
+																			htmlTemplateNoClick(
+																				'Thank you.',
+																				`Your request to project ${ project_name } has been received and is pending.`
+																			)
+																		)
+												);
+										}
+										else {
+											throw new Error(`You already have a pending request for this project.`)
+										}
+									})
 							}
 							else {
-								throw new Error(`You already have a pending request for this project.`)
+								throw new Error(`You already have access to this project.`);
 							}
 						})
 				}
 				else {
-					throw new Error(`You already have access to this project.`);
+					throw new Error(`Project ${ project_name } does not exist.`)
 				}
 			})
 	},
@@ -405,7 +417,7 @@ module.exports = {
 		})
 	},
 
-	passwordSetView: token => verifyAndGetUserData(token),
+	passwordSetView: verifyAndGetUserData,
 	passwordSet: (token, password) => {
 		return verifyAndGetUserData(token)
 			.then(userData => {

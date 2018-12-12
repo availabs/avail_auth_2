@@ -28,9 +28,9 @@ class App extends Component {
         			<h1 className="App-title">AVAIL Auth</h1>
               <div className="btn-group btn-group-sm">
                 {
-                  this.props.headerItems.map(({ onClick, label, key, alert=false }) =>
+                  this.props.headerItems.map(({ onClick, label, key, alert=false, color='primary' }) =>
                     <button key={ key } onClick={ onClick }
-                      className={ `btn btn-sm ${ current === key ? 'btn-info' : 'btn-primary' }` }>
+                      className={ `btn btn-sm ${ current === key ? 'btn-info' : `btn-${ color }` }` }>
                       { label }{ alert ? <span style={ { color: "orange", marginLeft: "5px" } } className="fa fa-exclamation"/> : <span /> }
                     </button>
                   )

@@ -129,7 +129,8 @@ class LandingView extends Component {
             )
           },
           label: "logout",
-          key: 'logout'
+          key: 'logout',
+          color: 'danger'
         }
       )
     }
