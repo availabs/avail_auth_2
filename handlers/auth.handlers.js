@@ -60,7 +60,7 @@ module.exports = {
 	
 	passwordSetView: (req, res) => {
 		const { token } = req.params;
-		utils.passwordSetView(token)
+		utils.verify(token)
 			.then(() => res.render("set", { token }))
 			.catch(() => res.render("404"));
 	},
@@ -83,7 +83,7 @@ module.exports = {
 	passwordReset: (req, res) => {
 		const { email } = req.body;
 		utils.passwordReset(email)
-			.then(() => res.json({ message: "Your password has been reset." }))
+			.then(() => res.json({ message: "Your password has been reset. You should receive an email shortly." }))
 			.catch(error => res.json({ error: error.message }));
 	}
 }

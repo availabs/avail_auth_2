@@ -49,10 +49,7 @@ class Set extends Component {
     }
   }
   passwordReset() {
-    const onReset = () => {
-      this.props.message("You should receive an email shortly.");
-    }
-    this.props.passwordReset(this.state.email, onReset);
+    this.props.passwordReset(this.state.email);
     this.reset();
   }
   render() {

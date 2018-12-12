@@ -315,7 +315,7 @@ module.exports = {
 																		`Your request to project "${ project_name }" has been accepted. Your password is: ${ password }`,
 																		htmlTemplate(
 																			`Your request to project "${ project_name }" has been accepted.`,
-																			`<div>Your password is:</div><div><b>${ password }</b></div><div>The following link will remain active for 6 hours...</div>`,
+																			`<div>Your new password is:</div><div><h3>${ password }</h3></div><div>Visit ${ host } and login with your new password, or click the button below within 6 hours within 6 hours, to set a new password.</div>`,
 																			`${ host }/password/set/${ token }`,
 																			"Click here to set a new password"
 																		)
@@ -417,7 +417,6 @@ module.exports = {
 		})
 	},
 
-	passwordSetView: verifyAndGetUserData,
 	passwordSet: (token, password) => {
 		return verifyAndGetUserData(token)
 			.then(userData => {
@@ -471,10 +470,10 @@ module.exports = {
 							.then(token =>
 								resolve(send(email,
 									"Password Reset.",
-									`Your password has been reset. Your temporary password is: ${ password }`,
+									`Your password has been reset. Your new password is: ${ password }`,
 									htmlTemplate(
 										`Your password has been reset.`,
-										`<div>Your temporary password is:</div><div><b>${ password }</b></div>`,
+										`<div>Your new password is:</div><div><h3>${ password }</h3></div><div>Visit ${ host } and login with your new password, or click the button below within 6 hours, to set a new password.</div>`,
 										`${ host }/password/set/${ token }`,
 										"Click here to set a new password"
 									)
