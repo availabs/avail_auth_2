@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e
+set -a
+
+. ../postgres.env.new_db
+
+psql \
+  --single-transaction \
+  -f <( ./generateCreateOldUserDataTmpTableSQL ) \
+  -f ./addIdColToUserTable.sql \
+  -f ./copyUserIds.sql \
+  -f ./backfillUserRows.sql
+
+psql -f <( ./generateDynamicAlterIdSQL )
