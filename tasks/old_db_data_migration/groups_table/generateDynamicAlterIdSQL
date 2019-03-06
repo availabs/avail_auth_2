@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -e
+
+MAX_USER_ID="$(psql -tA -c 'SELECT MAX(id) + 1 FROM groups')"
+
+echo "CREATE SEQUENCE IF NOT EXISTS groups_id_seq START ${MAX_USER_ID};
+
+ALTER SEQUENCE groups_id_seq START WITH ${MAX_USER_ID};
+
+ALTER TABLE groups ALTER COLUMN id SET DEFAULT nextval('groups_id_seq');
+
+UPDATE groups SET id=DEFAULT WHERE id IS NULL;
+"
