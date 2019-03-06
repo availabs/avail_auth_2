@@ -1,0 +1,35 @@
+#!/bin/bash
+
+# This script generates the DDL to create a temporary table
+#   containing the old auth database's group table data.
+# It begins with the CREATE TABLE DDL command
+#   then appends the COPY FROM data output by the pg_dump command to the end of the file.
+# The SQL is output to STDOUT for use in mergeOldDataIntoNewDB via process substitution
+
+set -e
+set -a
+
+. ../postgres.env.old_db
+
+## initialize with CREATE TABLE DDL.
+echo "DROP TABLE IF EXISTS tmp_old_join_table;
+
+CREATE TEMPORARY TABLE tmp_old_join_table (
+	user_email TEXT,
+	group_name TEXT
+) ON COMMIT DROP;
+
+COPY tmp_old_join_table (user_email, group_name) FROM stdin;"
+
+SQL='
+  SELECT
+      u.email,
+      g.name
+    FROM group_users__user_groups AS j
+      INNER JOIN "group" AS g ON (j.group_users = g.id)
+      INNER JOIN "user" AS u ON (j.user_groups = u.id)
+'
+
+psql -c "COPY ($SQL) TO STDOUT"
+
+echo '\.'
