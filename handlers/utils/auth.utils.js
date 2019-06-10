@@ -15,7 +15,7 @@ const bcrypt = require("bcryptjs"),
 
 const sign = (email, password) => {
 	return new Promise((resolve, reject) => {
-		jwt.sign({ email, password }, secret, { expiresIn: 5 }, (error, token) => {
+		jwt.sign({ email, password }, secret, { expiresIn: '6h' }, (error, token) => {
 			if (error) {
 				reject(error);
 			}
