@@ -15,18 +15,9 @@ module.exports = {
 
 	auth: (req, res) => {
 		const { token, project } = req.body;
-		try {
-			utils.auth(token, project)
-				.then(user => res.json({ user }))
-				.catch(e => {
-				    console.log('verify token error 6', e)
-				    return res.json({ error: 'Invalid Token' })
-				});
-		} catch ( e ) {
-			console.log(e)
-			res.json({error: 'Invalid Token'})
-		}
-
+		utils.auth(token, project)
+			.then(user => res.json({ user }))
+			.catch(e => res.json({ error: e.message }));
 	},
 
 	signup: (req, res) => {

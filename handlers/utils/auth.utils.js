@@ -15,7 +15,7 @@ const bcrypt = require("bcryptjs"),
 
 const sign = (email, password) => {
 	return new Promise((resolve, reject) => {
-		jwt.sign({ email, password }, secret, { expiresIn: '6h' }, (error, token) => {
+		jwt.sign({ email, password }, secret, { expiresIn: 5 }, (error, token) => {
 			if (error) {
 				reject(error);
 			}
@@ -181,27 +181,19 @@ module.exports = {
 				})
 		})
 	},
-
-	auth: (token, project) => {
-		return new Promise((resolve, reject) => {
-			verifyAndGetUserData(token)
-				.then(userData => {
-					hasProjectAccess(userData.email, project)
-						.then(hasAccess => {
-							if (hasAccess) {
-								resolve(getUser(userData.email, userData.password, project, userData.id));
-							}
-							else {
-								reject(new Error(`You do not have access to project ${ project }.`));
-							}
-						})
-				})
-				.catch(err => {
-					console.error(err)
-					reject()
-        })
-		})
-	},
+	auth: (token, project) =>
+		verifyAndGetUserData(token)
+			.then(userData => {
+				hasProjectAccess(userData.email, project)
+					.then(hasAccess => {
+						if (hasAccess) {
+							resolve(getUser(userData.email, userData.password, project, userData.id));
+						}
+						else {
+							reject(new Error(`You do not have access to project ${ project }.`));
+						}
+					})
+			}),
 
 	signupRequest: (email, project_name) => {
 		const sql = `
