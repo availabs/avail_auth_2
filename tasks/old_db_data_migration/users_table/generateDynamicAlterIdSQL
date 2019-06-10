@@ -1,0 +1,14 @@
+#!/bin/bash
+
+set -e
+
+MAX_USER_ID="$(psql -tA -c 'SELECT MAX(id) + 1 FROM users')"
+
+echo "CREATE SEQUENCE IF NOT EXISTS users_id_seq START ${MAX_USER_ID};
+
+ALTER SEQUENCE users_id_seq START WITH ${MAX_USER_ID};
+
+ALTER TABLE users ALTER COLUMN id SET DEFAULT nextval('users_id_seq');
+
+UPDATE users SET id=DEFAULT WHERE id IS NULL;
+"

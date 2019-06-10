@@ -1,0 +1,10 @@
+#!/bin/bash
+
+set -e
+set -a
+
+. ./postgres.env.dev
+
+export PGDATABASE=postgres
+
+zcat $1 | psql

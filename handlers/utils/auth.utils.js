@@ -98,13 +98,13 @@ const getUserAuthLevel = (email, project) => {
 	return query(sql, [email, project])
 		.then(rows => rows[0].auth_level || 0)
 }
-const getUser = (email, password, project) =>
+const getUser = (email, password, project, id) =>
 	getUserGroups(email, project)
 		.then(groups =>
 			getUserAuthLevel(email, project)
 				.then(authLevel =>
 					sign(email, password)
-						.then(token => ({ groups, authLevel, token }))
+						.then(token => ({ id, email, groups, authLevel, token }))
 				)
 		)
 
@@ -168,7 +168,7 @@ module.exports = {
 										VALUES ($1, $2);
 									`
 									return query(sql, [email, project])
-										.then(() => resolve(getUser(email, userData.password, project)));
+										.then(() => resolve(getUser(email, userData.password, project, userData.id)));
 								}
 								else {
 									reject(new Error(`You do not have access to project ${ project }.`));
@@ -189,14 +189,17 @@ module.exports = {
 					hasProjectAccess(userData.email, project)
 						.then(hasAccess => {
 							if (hasAccess) {
-								resolve(getUser(userData.email, userData.password, project));
+								resolve(getUser(userData.email, userData.password, project, userData.id));
 							}
 							else {
 								reject(new Error(`You do not have access to project ${ project }.`));
 							}
 						})
 				})
-				.catch(reject)
+				.catch(err => {
+					console.error(err)
+					reject()
+        })
 		})
 	},
 

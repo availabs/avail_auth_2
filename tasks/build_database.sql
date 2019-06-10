@@ -1,5 +1,6 @@
 CREATE DATABASE avail_auth
 WITH OWNER = postgres
+		TEMPLATE = template0
 		ENCODING = 'UTF8'
 		TABLESPACE = pg_default
 		LC_COLLATE = 'en_US.UTF-8'

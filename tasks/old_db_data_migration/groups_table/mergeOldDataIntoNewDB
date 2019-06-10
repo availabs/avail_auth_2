@@ -1,0 +1,15 @@
+#!/bin/bash
+
+set -e
+set -a
+
+. ../postgres.env.new_db
+
+psql \
+  --single-transaction \
+  -f <( ./generateCreateOldGroupDataTmpTableSQL ) \
+  -f ./addIdColToGroupTable.sql \
+  -f ./copyGroupIds.sql \
+  -f ./backfillGroupRows.sql
+
+psql -f <( ./generateDynamicAlterIdSQL )

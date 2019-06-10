@@ -1,0 +1,4 @@
+ALTER TABLE users
+  ADD COLUMN IF NOT EXISTS id INTEGER,
+  DROP CONSTRAINT IF EXISTS users_id_uniq,
+  ADD CONSTRAINT users_id_uniq UNIQUE (id);

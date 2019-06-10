@@ -1,0 +1,8 @@
+#!/bin/bash
+
+set -e
+set -a
+
+. ./postgres.env.prod
+
+pg_dump --create | gzip -9 > "avail_auth.$( date +'%s' ).sql.gz"

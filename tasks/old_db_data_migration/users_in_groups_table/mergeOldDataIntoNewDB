@@ -1,0 +1,11 @@
+#!/bin/bash
+
+set -e
+set -a
+
+. ../postgres.env.new_db
+
+psql \
+  --single-transaction \
+  -f <( ./generateCreateJoinTmcTableSQL ) \
+  -f ./insertOldJoinTableData.sql
