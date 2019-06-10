@@ -62,9 +62,8 @@ module.exports = {
 										VALUES ($1, 'avail', 10, $2);
 									`, [name, userData.email]]
 								]
-								queryAll(sqlAndValues)
-									.then(resolve)
-									.catch(reject);
+								return queryAll(sqlAndValues)
+									.then(resolve);
 							}
 							else {
 								reject(new Error("You do not have the required authority to create projects."))
@@ -94,7 +93,7 @@ module.exports = {
 									.catch(reject);
 							}
 							else {
-								reject(new Error("You do not have the required authority to remove projects."))
+								reject(new Error("You do not have the required authority to delete projects."))
 							}
 						})
 				})

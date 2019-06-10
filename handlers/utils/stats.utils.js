@@ -1,4 +1,4 @@
-const { query, queryAll } = require("./db_service"),
+const { query } = require("./db_service"),
 	{
 		verifyAndGetUserData,
 		getUserAuthLevel
