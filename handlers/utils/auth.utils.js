@@ -183,17 +183,17 @@ module.exports = {
 	},
 	auth: (token, project) =>
 		verifyAndGetUserData(token)
-			.then(userData => {
+			.then(userData =>
 				hasProjectAccess(userData.email, project)
 					.then(hasAccess => {
 						if (hasAccess) {
-							resolve(getUser(userData.email, userData.password, project, userData.id));
+							return getUser(userData.email, userData.password, project, userData.id);
 						}
 						else {
-							reject(new Error(`You do not have access to project ${ project }.`));
+							throw new Error(`You do not have access to project ${ project }.`);
 						}
 					})
-			}),
+			),
 
 	signupRequest: (email, project_name) => {
 		const sql = `

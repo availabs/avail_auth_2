@@ -16,7 +16,10 @@ module.exports = {
 	auth: (req, res) => {
 		const { token, project } = req.body;
 		utils.auth(token, project)
-			.then(user => res.json({ user }))
+			.then(user => {
+				console.log("????", user)
+				res.json({ user })
+			})
 			.catch(e => res.json({ error: e.message }));
 	},
 
