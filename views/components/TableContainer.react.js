@@ -28,17 +28,19 @@ class TableContainer extends Component {
 		return [page * size, page * size + size];
 	}
 	getPagination(maxPage) {
+		const SPREAD = 3;
+
 		const { page } = this.state;
 		let numAbove = maxPage - page,
 			numBelow = page;
-		if ((numAbove > 2) && (numBelow > 2)) {
-			numAbove = numBelow = 2;
+		if ((numAbove >= SPREAD) && (numBelow >= SPREAD)) {
+			numAbove = numBelow = SPREAD;
 		}
-		else if (numBelow < 2) {
-			numAbove = Math.min(4 - numBelow, numAbove);
+		else if (numBelow < SPREAD) {
+			numAbove = Math.min((SPREAD * 2) - numBelow, numAbove);
 		}
-		else if (numAbove < 2) {
-			numBelow = Math.min(4 - numAbove, numBelow);
+		else if (numAbove < SPREAD) {
+			numBelow = Math.min((SPREAD * 2) - numAbove, numBelow);
 		}
 		const range = [page - numBelow, page + numAbove],
 			pagination = [];

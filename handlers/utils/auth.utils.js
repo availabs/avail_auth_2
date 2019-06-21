@@ -156,6 +156,8 @@ module.exports = {
 	verifyAndGetUserData,
 
 	login: (email, password, project) => {
+		email = email.toLowerCase();
+		
 		return new Promise((resolve, reject) => {
 			getUserData(email)
 				.then(userData => {
@@ -196,6 +198,8 @@ module.exports = {
 			),
 
 	signupRequest: (email, project_name) => {
+		email = email.toLowerCase();
+
 		const sql = `
 			SELECT count(1) AS count
 			FROM projects
@@ -258,6 +262,8 @@ module.exports = {
 			})
 	},
 	signupAccept: (token, group_name, user_email, project_name) => {
+		user_email = user_email.toLowerCase();
+
 		return new Promise((resolve, reject) => {
 			verifyAndGetUserData(token)
 				.then(userData => {
@@ -330,6 +336,8 @@ module.exports = {
 		})
 	},
 	signupReject: (token, user_email, project_name) => {
+		user_email = user_email.toLowerCase();
+
 		return new Promise((resolve, reject) => {
 			verifyAndGetUserData(token)
 				.then(userData => {
@@ -368,6 +376,8 @@ module.exports = {
 	},
 
 	deleteSignup: (token, user_email, project_name) => {
+		user_email = user_email.toLowerCase();
+
 		return new Promise((resolve, reject) => {
 			verifyAndGetUserData(token)
 				.then(userData => {
@@ -449,6 +459,8 @@ module.exports = {
 		})
 	},
 	passwordReset: email => {
+		email = email.toLowerCase();
+
 		return new Promise((resolve, reject) => {
 			getUserData(email)
 				.then(userData => {
