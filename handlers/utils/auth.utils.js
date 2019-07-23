@@ -76,22 +76,26 @@ const passwordGen = () => {
 
 const getUserGroups = (email, project) => {
 	const sql = `
-		SELECT uip.group_name AS name
-		FROM users_in_groups AS uip
+		SELECT uig.group_name AS name,
+			meta,
+			gip.auth_level
+		FROM users_in_groups AS uig
 			INNER JOIN groups_in_projects AS gip
-			ON uip.group_name = gip.group_name
+				ON uig.group_name = gip.group_name
+			INNER JOIN groups
+				ON groups.name = gip.group_name
 		WHERE user_email = $1
 		AND project_name = $2;
 	`
 	return query(sql, [email, project])
-		.then(rows => rows.map(row => row.name))
+		// .then(rows => rows.map(row => row.name))
 }
 const getUserAuthLevel = (email, project) => {
 	const sql = `
 		SELECT max(auth_level) AS auth_level
 		FROM groups_in_projects AS gip
-			INNER JOIN users_in_groups AS uip
-			ON gip.group_name = uip.group_name
+			INNER JOIN users_in_groups AS uig
+			ON gip.group_name = uig.group_name
 		WHERE user_email = $1
 		AND project_name = $2;
 	`
@@ -104,7 +108,14 @@ const getUser = (email, password, project, id) =>
 			getUserAuthLevel(email, project)
 				.then(authLevel =>
 					sign(email, password)
-						.then(token => ({ id, email, groups, authLevel, token }))
+						.then(token =>
+							({ id, email, authLevel, token,
+								groups: groups.map(g => g.name),
+								meta: groups.map(g =>
+									({ group: g.name, meta: g.meta, authLevel: g.auth_level })
+								)
+							})
+						)
 				)
 		)
 
@@ -157,7 +168,7 @@ module.exports = {
 
 	login: (email, password, project) => {
 		email = email.toLowerCase();
-		
+
 		return new Promise((resolve, reject) => {
 			getUserData(email)
 				.then(userData => {

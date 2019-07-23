@@ -163,10 +163,11 @@ export default (state=INITIAL_STATE, action) => {
 				authed: true,
 				token: action.token,
 				authLevel: action.authLevel,
-				groups: action.groups
+				groups: action.groups,
+				meta: action.meta
 			};
 		case LOGOUT:
-			return INITIAL_STATE;
+			return { ...INITIAL_STATE };
 		default:
 			return state;
 	}

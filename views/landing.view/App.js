@@ -35,15 +35,23 @@ class LandingView extends Component {
   componentDidMount() {
     this.props.getMessages();
     this.props.getRequests();
-    const interval = setInterval(
-      () => { this.props.getMessages(); this.props.getRequests(); }
-      , 30000
-    )
-    this.setState({ interval })
   }
   componentWillUnmount() {
     if (this.state.interval) {
       clearInterval(this.state.interval);
+    }
+  }
+  componentDidUpdate(oldProps, oldState) {
+    if (!oldProps.user.authed && this.props.user.authed) {
+      const interval = setInterval(
+        () => { this.props.getMessages(); this.props.getRequests(); }
+        , 15000
+      )
+      this.setState({ interval });
+    }
+    else if (oldProps.user.authed && !this.props.user.authed) {
+      clearInterval(this.state.interval);
+      this.setState({ interval: null });
     }
   }
 
@@ -54,8 +62,7 @@ class LandingView extends Component {
     }
   }
   getView() {
-    const { view } = this.state;
-    switch (view) {
+    switch (this.state.view) {
       case "home":
         return <Home />;
       case "pending":
@@ -138,6 +145,7 @@ class LandingView extends Component {
     return headerItems;
   }
 	render() {
+console.log("USER:", this.props.user);
 		const { authed, authLevel } = this.props.user,
       links = authed ? [] :
       [

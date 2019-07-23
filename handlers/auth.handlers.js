@@ -17,7 +17,6 @@ module.exports = {
 		const { token, project } = req.body;
 		utils.auth(token, project)
 			.then(user => {
-				console.log("????", user)
 				res.json({ user })
 			})
 			.catch(e => res.json({ error: e.message }));
@@ -53,14 +52,14 @@ module.exports = {
 			.then(message => res.json({ message }))
 			.catch(error => res.json({ error: error.message }));
 	},
-	
+
 	getRequests: (req, res) => {
 		const { token } = req.body;
 		utils.getRequests(token)
 			.then(requests => res.json({ requests }))
 			.catch(e => res.json({ error: e.message }));
 	},
-	
+
 	passwordSetView: (req, res) => {
 		const { token } = req.params;
 		utils.verify(token)
