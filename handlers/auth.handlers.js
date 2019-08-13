@@ -36,10 +36,10 @@ module.exports = {
 	},
 	signupAccept: (req, res) => {
 		const {
-			token,
-			group_name,
-			user_email,
-			project_name,
+			token,	// the json token of authorizing user
+			group_name, // group to add new user to
+			user_email, // email of new user
+			project_name, // project name that the group has access to
 			host,	// should NOT end in /
 						// defaults to host imported from "./host.json"
 			url		// should NOT end in /
