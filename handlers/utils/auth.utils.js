@@ -272,7 +272,7 @@ module.exports = {
 				}
 			})
 	},
-	signupAccept: (token, group_name, user_email, project_name) => {
+	signupAccept: (token, group_name, user_email, project_name, HOST = host, URL = '/password/set') => {
 		user_email = user_email.toLowerCase();
 
 		return new Promise((resolve, reject) => {
@@ -327,8 +327,8 @@ module.exports = {
 																		`Your request to project "${ project_name }" has been accepted. Your password is: ${ password }`,
 																		htmlTemplate(
 																			`Your request to project "${ project_name }" has been accepted.`,
-																			`<div>Your new password is:</div><div><h3>${ password }</h3></div><div>Visit ${ host } and login with your new password, or click the button below within 6 hours within 6 hours, to set a new password.</div>`,
-																			`${ host }/password/set/${ token }`,
+																			`<div>Your new password is:</div><div><h3>${ password }</h3></div><div>Visit ${ HOST } and login with your new password, or click the button below within 6 hours, to set a new password.</div>`,
+																			`${ HOST }${ URL }/${ token }`,
 																			"Click here to set a new password"
 																		)
 																	)

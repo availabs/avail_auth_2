@@ -35,8 +35,17 @@ module.exports = {
 			.catch(error => res.json({ error: error.message }));
 	},
 	signupAccept: (req, res) => {
-		const { token, group_name, user_email, project_name } = req.body;
-		utils.signupAccept(token, group_name, user_email, project_name)
+		const {
+			token,
+			group_name,
+			user_email,
+			project_name,
+			host,	// should NOT end in /
+						// defaults to host imported from "./host.json"
+			url		// should NOT end in /
+						// defaults to "/password/set"
+		} = req.body;
+		utils.signupAccept(token, group_name, user_email, project_name, host, url)
 			.then(() => res.json({ message: `Signup request for ${ user_email } has been accepted.` }))
 			.catch(error => res.json({ error: error.message }));
 	},
