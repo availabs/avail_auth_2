@@ -209,14 +209,6 @@ module.exports = {
 					})
 			),
 
-	addToGroup: (email, project, group_name, projectData) => {
-		const {
-			HOST,
-			URL
-		} = getProjectData(projectData);
-
-	},
-
 	signupRequest: (email, project_name) => {
 		email = email.toLowerCase();
 
@@ -281,6 +273,72 @@ module.exports = {
 					throw new Error(`Project ${ project_name } does not exist.`)
 				}
 			})
+	},
+
+	addToGroup: (email, project, group_name, projectData) => {
+		const {
+			HOST,
+			URL
+		} = getProjectData(projectData);
+
+		return new Promise( (resolve, reject) => {
+			// find group to add
+			// add user to that group
+			// add user to users
+			// send user an email with password
+
+			const sql = `
+								SELECT group_name
+								FROM groups_in_projects
+								WHERE project_name = $1
+								AND  auth_level = 0;
+							`
+			query(sql, [project])
+				.then(group_name => group_name[0].group_name)
+				.then(group_name => {
+					if (group_name){
+						let sql = `
+												INSERT INTO users_in_groups(user_email, group_name, created_by)
+												VALUES ($1, $2, $3);
+											`,
+							args = [email, group_name, email];
+						resolve(
+							query(sql, args)
+								.then( () => {
+									const password = passwordGen(),
+										passwordHash = bcrypt.hashSync(password),
+									sql = `
+																	INSERT INTO users(email, password)
+																	VALUES ($1, $2);
+																`,
+									args = [email, passwordHash];
+									query(sql, args)
+										.then(() =>
+											sign(email, passwordHash)
+												.then(token =>
+													send(
+														email,
+														"Invite Request.",
+														`Your request to project "${ project }" has been accepted. Your password is: ${ password }`,
+														htmlTemplate(
+															`Your request to project "${ project }" has been accepted.`,
+															`<div>Your new password is:</div><div><h3>${ password }</h3></div><div>Visit ${ HOST } and login with your new password, or click the button below within 6 hours, to set a new password.</div>`,
+															`${ HOST }${ URL }/${ token }`,
+															"Click here to set a new password"
+														)
+													)
+												)
+										)
+								})
+								.catch(error => { throw error; })
+						)
+					}else{
+						reject('Group not found.')
+					}
+
+				})
+		})
+
 	},
 	signupAccept: (token, group_name, user_email, project_name, projectData = {}) => {
 		user_email = user_email.toLowerCase();
@@ -451,7 +509,7 @@ module.exports = {
 	passwordSet: (token, password) => {
 		return verifyAndGetUserData(token)
 			.then(userData => {
-				const passwordHash = bcrypt.hashSync(password)
+				const passwordHash = bcrypt.hashSync(password),
 					sql = `
 						UPDATE users
 						SET password = $1
@@ -467,7 +525,7 @@ module.exports = {
 			verifyAndGetUserData(token)
 				.then(userData => {
 					if (bcrypt.compareSync(current, userData.password)) {
-						const passwordHash = bcrypt.hashSync(password)
+						const passwordHash = bcrypt.hashSync(password),
 							sql = `
 								UPDATE users
 								SET password = $1
