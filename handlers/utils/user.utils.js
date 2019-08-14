@@ -198,11 +198,8 @@ module.exports = {
 												WHERE email = $1;`, [user_email]],
 											[`DELETE FROM users_in_groups
 												WHERE user_email = $1`, [user_email]],
-											[`UPDATE signup_requests
-												SET state = 'rejected',
-													resolved_by = $1,
-													resolved_at = now()
-												WHERE user_email = $2`, [userData.email, user_email]]
+											[`DELETE FROM signup_requests
+												WHERE user_email = $1;`, [user_email]]
 										]
 										return queryAll(sqlAndValues)
 											.then(() => resolve(`Deleted user ${ user_email }.`));

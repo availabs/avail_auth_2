@@ -34,7 +34,12 @@ export const accept = (request, group_name) =>
   (dispatch, getState) => {
     const { token } = getState().user;
     if (token) {
-      return postJson("/signup/accept", { token, group_name, user_email: request.user_email, project_name: request.project_name })
+      return postJson("/signup/accept",
+                        { token,
+                          group_name,
+                          user_email: request.user_email,
+                          project_name: request.project_name
+                        })
       	.then(res => {
         	if (res.error) {
           		dispatch(message(res.error));

@@ -26,13 +26,32 @@ module.exports = {
 		res.render("signup");
 	},
 	signupRequest: (req, res) => {
-		const { email, project } = req.body;
+		const {
+			email,
+			project,
+			addToGroup,	// OPTIONAL, group name to automatically add user to, MUST BE auth_level 0
+			host,	// OPTIONAL, should NOT end in /
+						// defaults to host imported from "./host.json"
+			url		// OPTIONAL, should NOT end in /
+						// defaults to "/password/set"
+		} = req.body;
 		if (!email || !project) {
 			return res.json({ error: "You must supply an email and project." });
 		}
-		utils.signupRequest(email, project)
-			.then(user => res.json({ message: "Your request is pending. You should receive an email shortly." }))
-			.catch(error => res.json({ error: error.message }));
+		if (Boolean(addToGroup)) {
+			let projectData = {};
+			if (host && url) {
+				projectData = { HOST: host, URL: url };
+			}
+			utils.addToGroup(email, project, addToGroup, projectData)
+				.then(() => res.json({ message: `You have been added to group ${ addToGroup }.` }))
+				.catch(error => res.json({ error: error.message }));
+		}
+		else {
+			utils.signupRequest(email, project)
+				.then(user => res.json({ message: "Your request is pending. You should receive an email shortly." }))
+				.catch(error => res.json({ error: error.message }));
+		}
 	},
 	signupAccept: (req, res) => {
 		const {
@@ -40,12 +59,18 @@ module.exports = {
 			group_name, // group to add new user to
 			user_email, // email of new user
 			project_name, // project name that the group has access to
-			host,	// should NOT end in /
+			host,	// OPTIONAL, should NOT end in /
 						// defaults to host imported from "./host.json"
-			url		// should NOT end in /
+			url		// OPTIONAL, should NOT end in /
 						// defaults to "/password/set"
 		} = req.body;
-		utils.signupAccept(token, group_name, user_email, project_name, host, url)
+
+		let projectData = {};
+		if (host && url) {
+			projectData = { HOST: host, URL: url };
+		}
+
+		utils.signupAccept(token, group_name, user_email, project_name, projectData)
 			.then(() => res.json({ message: `Signup request for ${ user_email } has been accepted.` }))
 			.catch(error => res.json({ error: error.message }));
 	},

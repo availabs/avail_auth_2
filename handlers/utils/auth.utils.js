@@ -7,6 +7,7 @@ const bcrypt = require("bcryptjs"),
 	{ send } = require("./mail_service"),
 
 	{ host } = require("./host.json"),
+	{ getProjectData } = require("./getProjectData"),
 
 	{
 		htmlTemplate,
@@ -208,6 +209,14 @@ module.exports = {
 					})
 			),
 
+	addToGroup: (email, project, group_name, projectData) => {
+		const {
+			HOST,
+			URL
+		} = getProjectData(projectData);
+
+	},
+
 	signupRequest: (email, project_name) => {
 		email = email.toLowerCase();
 
@@ -236,7 +245,8 @@ module.exports = {
 									SELECT count(1) AS count
 									FROM signup_requests
 									WHERE user_email = $1
-									AND project_name = $2;
+									AND project_name = $2
+									AND state = 'pending';
 								`
 								return query(sql, [email, project_name])
 									.then(rows => +rows[0].count)
@@ -272,8 +282,13 @@ module.exports = {
 				}
 			})
 	},
-	signupAccept: (token, group_name, user_email, project_name, HOST = host, URL = '/password/set') => {
+	signupAccept: (token, group_name, user_email, project_name, projectData = {}) => {
 		user_email = user_email.toLowerCase();
+
+		const {
+			HOST,
+			URL
+		} = getProjectData(projectData);
 
 		return new Promise((resolve, reject) => {
 			verifyAndGetUserData(token)
