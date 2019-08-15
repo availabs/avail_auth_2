@@ -333,49 +333,80 @@ module.exports = {
 								AND  auth_level = 0;
 							`
 			query(sql, [project])
-				.then(group_name => group_name[0].group_name)
 				.then(group_name => {
-					if (group_name){
+					if (group_name.length > 0 && group_name[0].group_name){
+						group_name = group_name[0].group_name;
+
 						let sql = `
-												INSERT INTO users_in_groups(user_email, group_name, created_by)
-												VALUES ($1, $2, $3);
-											`,
-							args = [email, group_name, email];
-						resolve(
-							query(sql, args)
-								.then( () => {
-									const password = passwordGen(),
-										passwordHash = bcrypt.hashSync(password),
-									sql = `
+							SELECT max(auth_level)
+							FROM groups_in_projects
+							WHERE group_name = $1
+							`
+						return query(sql, [group_name])
+							.then(auth_level => {
+								if (auth_level.length > 0 && auth_level[0].max === 0){
+									let  sql = `
+											SELECT count(1) AS count
+											FROM users_in_groups AS uig
+											INNER JOIN groups_in_projects AS gip
+											ON uig.group_name = gip.group_name
+											WHERE user_email = $1
+											AND project_name = $2;
+										`,
+										args = [email, project];
+
+									return query(sql, args)
+										.then(rows => +rows[0].count)
+										.then(count => {
+											if (count === 0) {
+												let sql = `
+													INSERT INTO users_in_groups(user_email, group_name, created_by)
+													VALUES ($1, $2, $3);
+												`,
+													args = [email, group_name, 'auto-accept'];
+												return query(sql, args)
+													.then( () => {
+														const password = passwordGen(),
+															passwordHash = bcrypt.hashSync(password),
+															sql = `
 																	INSERT INTO users(email, password)
 																	VALUES ($1, $2);
 																`,
-									args = [email, passwordHash];
-									query(sql, args)
-										.then(() =>
-											sign(email, passwordHash)
-												.then(token =>
-													send(
-														email,
-														"Invite Request.",
-														`Your request to project "${ project }" has been accepted. Your password is: ${ password }`,
-														htmlTemplate(
-															`Your request to project "${ project }" has been accepted.`,
-															`<div>Your new password is:</div><div><h3>${ password }</h3></div><div>Visit ${ HOST } and login with your new password, or click the button below within 6 hours, to set a new password.</div>`,
-															`${ HOST }${ URL }/${ token }`,
-															"Click here to set a new password"
-														)
-													)
-												)
-										)
-								})
-								.catch(error => { throw error; })
-						)
+															args = [email, passwordHash];
+														return query(sql, args)
+															.then(() =>
+																sign(email, passwordHash)
+																	.then(token =>
+																		send(
+																			email,
+																			"Invite Request.",
+																			`Your request to project "${ project }" has been accepted. Your password is: ${ password }`,
+																			htmlTemplate(
+																				`Your request to project "${ project }" has been accepted.`,
+																				`<div>Your new password is:</div><div><h3>${ password }</h3></div><div>Visit ${ HOST } and login with your new password, or click the button below within 6 hours, to set a new password.</div>`,
+																				`${ HOST }${ URL }/${ token }`,
+																				"Click here to set a new password"
+																			)
+																		)
+																	)
+															)
+													})
+											}else {
+												throw new Error(`You already have access to this project.`);
+											}
+										})
+
+								}else{
+									throw new Error('Group not found.');
+								}
+
+							})
 					}else{
-						reject('Group not found.')
+						throw new Error('Group not found.')
 					}
 
 				})
+				.catch(error => { throw error; })
 		})
 
 	},
