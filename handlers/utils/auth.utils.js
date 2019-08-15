@@ -158,6 +158,45 @@ const verifyAndGetUserData = token => {
 	})
 }
 
+const createNewUser = user_email =>	{
+	const sql = `
+		SELECT count(1) AS count
+		FROM user
+		WHERE email = $1;
+	`
+	return query(sql, [user_email])
+		.then(rows => rows[0].count)
+		.then(count => {
+			if (count === 0) {
+				const password = passwordGen(),
+					passwordHash = bcrypt.hashSync(password),
+					sql = `
+						INSERT INTO users(email, password)
+						VALUES ($1, $2);
+					`
+				return query(sql, [user_email, passwordHash])
+					.then(() => ({ password, passwordHash }))
+			}
+			return null;
+		})
+}
+const sendAcceptEmail = (user_email, password, passwordHash, projectName, HOST, URL) => {
+	return sign(user_email, passwordHash)
+		.then(token => {
+			send(
+				user_email,
+				"Invite Request.",
+				`Your request to project "${ project_name }" has been accepted. Your password is: ${ password }`,
+				htmlTemplate(
+					`Your request to project "${ project_name }" has been accepted.`,
+					`<div>Your new password is:</div><div><h3>${ password }</h3></div><div>Visit ${ HOST } and login with your new password, or click the button below within 6 hours, to set a new password.</div>`,
+					`${ HOST }${ URL }/${ token }`,
+					"Click here to set a new password"
+				)
+			)
+		})
+}
+
 module.exports = {
 
 	sign,

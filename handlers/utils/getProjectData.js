@@ -1,7 +1,7 @@
 const { host } = require("./host.json")
 
 const PROJECT_DATA = {
-  example_project_name: { HOST: "www.fakehost.com", URL: "/fake/url" }
+  example_project_name: { HOST: "www.fakehost.com", URL: "/fake/url", name: "Pretty Name" }
 }
 const DEFAULT_PROJECT_DATA = {
   HOST: host, URL: "/password/reset"
