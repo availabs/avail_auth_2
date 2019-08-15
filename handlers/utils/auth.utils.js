@@ -161,11 +161,11 @@ const verifyAndGetUserData = token => {
 const createNewUser = user_email =>	{
 	const sql = `
 		SELECT count(1) AS count
-		FROM user
+		FROM public.users
 		WHERE email = $1;
 	`
 	return query(sql, [user_email])
-		.then(rows => rows[0].count)
+		.then(rows => +rows[0].count)
 		.then(count => {
 			if (count === 0) {
 				const password = passwordGen(),
@@ -177,15 +177,15 @@ const createNewUser = user_email =>	{
 				return query(sql, [user_email, passwordHash])
 					.then(() => ({ password, passwordHash }))
 			}
-			return null;
+			return {};
 		})
 }
-const sendAcceptEmail = (user_email, password, passwordHash, projectName, HOST, URL) => {
+const sendAcceptEmail = (user_email, password, passwordHash, project_name, HOST, URL) => {
 	return sign(user_email, passwordHash)
 		.then(token => {
-			send(
+			return send(
 				user_email,
-				"Invite Request.",
+				"Invite Accepted.",
 				`Your request to project "${ project_name }" has been accepted. Your password is: ${ password }`,
 				htmlTemplate(
 					`Your request to project "${ project_name }" has been accepted.`,
@@ -314,7 +314,64 @@ module.exports = {
 			})
 	},
 
-	addToGroup: (email, project, group_name, projectData) => {
+	addToGroup: (user_email, project_name, group_name, projectData) => {
+		const {
+			HOST,
+			URL
+		} = getProjectData(projectData);
+
+		const sql = `
+			SELECT count(1) AS count
+			FROM groups_in_projects
+			WHERE group_name = $1
+			AND group_name NOT IN (
+				SELECT group_name
+				FROM groups_in_projects
+				WHERE auth_level > 1
+			)
+		`
+		return query(sql, [group_name])
+			.then(row => +row[0].count)
+			.then(count => {
+				if (count === 1) {
+					const  sql = `
+						SELECT count(1) AS count
+						FROM users_in_groups AS uig
+						INNER JOIN groups_in_projects AS gip
+						ON uig.group_name = gip.group_name
+						WHERE user_email = $1
+						AND project_name = $2;
+					`;
+					return query(sql, [user_email, project_name])
+						.then(rows => +rows[0].count)
+						.then(count => {
+							if (count === 0) {
+								const sql = `
+									INSERT INTO users_in_groups(user_email, group_name, created_by)
+									VALUES ($1, $2, $3);
+								`;
+								return query(sql, [user_email, group_name, 'auto-accept'])
+									.then(() => {
+										return createNewUser(user_email)
+											.then(({ password, passwordHash }) => {
+												if (password && passwordHash) {
+													return sendAcceptEmail(user_email, password, passwordHash, project_name, HOST, URL);
+												}
+											})
+									})
+							}
+							else {
+								throw new Error("You already have access to this project.")
+							}
+					})
+				}
+				else {
+					throw new Error("Count not add you to group.")
+				}
+			})
+	},
+
+	addToGroupOld: (email, project, group_name, projectData) => {
 		const {
 			HOST,
 			URL
@@ -418,10 +475,9 @@ module.exports = {
 			URL
 		} = getProjectData(projectData);
 
-		return new Promise((resolve, reject) => {
-			verifyAndGetUserData(token)
+		return verifyAndGetUserData(token)
 				.then(userData => {
-					getUserAuthLevel(userData.email, project_name)
+					return getUserAuthLevel(userData.email, project_name)
 						.then(authLevel => {
 							const sql = `
 								SELECT auth_level
@@ -429,7 +485,7 @@ module.exports = {
 								WHERE group_name = $1
 								AND project_name = $2;
 							`
-							query(sql, [group_name, project_name])
+							return query(sql, [group_name, project_name])
 								.then(rows => rows.length ? rows[0].auth_level : 0)
 								.then(groupAuthLevel => {
 									if (authLevel >= groupAuthLevel) {
@@ -438,56 +494,38 @@ module.exports = {
 												VALUES ($1, $2, $3);
 											`,
 											args = [user_email, group_name, userData.email];
-										resolve(
-											query(sql, args)
-												.then(() => {
-													const password = passwordGen(),
-														passwordHash = bcrypt.hashSync(password);
-													sql = `
-														INSERT INTO users(email, password)
-														VALUES ($1, $2);
-													`
-													args = [user_email, passwordHash];
-													return query(sql, args)
-														.then(() => {
-															sql = `
-																UPDATE signup_requests
-																SET state = 'accepted',
-																	resolved_at = now(),
-																	resolved_by = $1
-																WHERE user_email = $2
-																AND project_name = $3;
-															`;
-															args = [userData.email, user_email, project_name];
-															return query(sql, args)
-														})
-														.then(() =>
-															sign(user_email, passwordHash)
-																.then(token =>
-																	send(
-																		user_email,
-																		"Invite Request.",
-																		`Your request to project "${ project_name }" has been accepted. Your password is: ${ password }`,
-																		htmlTemplate(
-																			`Your request to project "${ project_name }" has been accepted.`,
-																			`<div>Your new password is:</div><div><h3>${ password }</h3></div><div>Visit ${ HOST } and login with your new password, or click the button below within 6 hours, to set a new password.</div>`,
-																			`${ HOST }${ URL }/${ token }`,
-																			"Click here to set a new password"
-																		)
-																	)
-																)
-														);
+
+										return query(sql, args)
+											.then(() => {
+												return createNewUser(user_email)
+													.then(({ password, passwordHash }) => {
+
+														let promise = null;
+														if (password && passwordHash) {
+															promise = sendAcceptEmail(user_email, password, passwordHash, project_name, HOST, URL);
+														}
+														return Promise.resolve(promise)
+															.then(() => {
+																const sql = `
+																	UPDATE signup_requests
+																	SET state = 'accepted',
+																		resolved_at = now(),
+																		resolved_by = $1
+																	WHERE user_email = $2
+																	AND project_name = $3;
+																`;
+																return query(sql, [userData.email, user_email, project_name])
+															})
+													})
 												})
-												.catch(error => { throw error; })
-										)
 									}
 									else {
-										reject(new Error(`You do not have authority to assign users to group ${ group_name }.`))
+										throw new Error(`You do not have authority to assign users to group ${ group_name }.`)
 									}
 								})
 						})
 				})
-		})
+
 	},
 	signupReject: (token, user_email, project_name) => {
 		user_email = user_email.toLowerCase();

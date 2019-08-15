@@ -39,7 +39,6 @@ module.exports = {
 			return res.json({ error: "You must supply an email and project." });
 		}
 		if (Boolean(addToGroup)) {
-			// group name to add user to will be fetched from database in auth.utils
 			let projectData = {};
 			if (host && url) {
 				projectData = { HOST: host, URL: url };
