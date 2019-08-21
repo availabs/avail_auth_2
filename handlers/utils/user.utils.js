@@ -232,6 +232,8 @@ module.exports = {
 											[`DELETE FROM users_in_groups
 												WHERE user_email = $1`, [user_email]],
 											[`DELETE FROM signup_requests
+												WHERE user_email = $1;`, [user_email]],
+											[`DELETE FROM logins
 												WHERE user_email = $1;`, [user_email]]
 										]
 										return queryAll(sqlAndValues)
