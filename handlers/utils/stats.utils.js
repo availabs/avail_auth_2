@@ -20,7 +20,8 @@ module.exports = {
 										SELECT user_email
 										FROM users_in_groups
 										WHERE group_name = 'AVAIL'
-									);
+									)
+									AND user_email NOT LIKE 'fake.user.%@fake.email.com';
 								`
 								return query(sql)
 							}
