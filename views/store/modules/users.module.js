@@ -91,6 +91,24 @@ export const deleteUser = user_email =>
 		}
 	}
 
+export const createFake = () =>
+	(dispatch, getState) => {
+	const { token } = getState().user;
+	if (token) {
+		return postJson("/user/create/fake", { token })
+			.then(res => {
+				if (res.error) {
+					dispatch(message(res.error));
+				}
+				else {
+					dispatch(getUsers());
+					dispatch(message(res.message, { duration: 10000 }));
+				}
+			})
+	}
+	return Promise.resolve();
+	}
+
 const INITIAL_STATE = [];
 
 export default (state=INITIAL_STATE, action) => {

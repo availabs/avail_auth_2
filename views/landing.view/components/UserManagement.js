@@ -9,7 +9,8 @@ import {
 	deleteUser,
 	getUsers,
 	assign,
-	remove
+	remove,
+	createFake
 } from "../../store/modules/users.module"
 import {
 	accept,
@@ -225,6 +226,18 @@ class UserManagement extends Component {
 		this.setState({ [e.target.id]: e.target.value })
 	}
 
+	createFake() {
+console.log(this.props.createFake)
+		this.props.message(
+			`Are you sure you wish to create a new fake user?`,
+			{
+				duration: 0,
+				id: `create-fake`,
+				onConfirm: () => this.props.createFake()
+			}
+		)
+	}
+
 	render() {
 		const {
 			groups,
@@ -235,7 +248,8 @@ class UserManagement extends Component {
 			accept,
 			assign,
 			remove,
-			deleteRequest
+			deleteRequest,
+			user
 		} = this.props;
 		const {
 			groupFilter,
@@ -285,6 +299,14 @@ class UserManagement extends Component {
 	            	remove={ remove }/>
 	          )
 		      }/>
+				{ !user.groups.includes("AVAIL") ? null :
+					<div style={ { marginBottom: "0.5rem" } }>
+						<button className="btn btn-lg btn-primary"
+							onClick={ e => this.createFake() }>
+							<h3 style={ { margin: "0px" } }>Create Fake User</h3>
+						</button>
+					</div>
+				}
         <h3>Rejected Requests</h3>
         <TableContainer
         	headers={ ["email", "project", "date", "groups", "accept", "delete"] }
@@ -309,7 +331,8 @@ const mapStateToProps = state => ({
 	groups: state.groups,
 	projects: state.projects,
 	requests: state.requests,
-	users: state.users
+	users: state.users,
+	user: state.user
 })
 
 const mapDispatchToProps = {
@@ -321,7 +344,8 @@ const mapDispatchToProps = {
   message,
 	assign,
 	remove,
-	deleteRequest
+	deleteRequest,
+	createFake
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(UserManagement);

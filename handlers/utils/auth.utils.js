@@ -205,6 +205,7 @@ module.exports = {
 	getUserData,
 	getUserAuthLevel,
 	verifyAndGetUserData,
+	getUserGroups,
 
 	login: (email, password, project) => {
 		email = email.toLowerCase();

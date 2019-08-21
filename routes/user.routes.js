@@ -1,7 +1,7 @@
 const UserHandlers = require("../handlers/user.handlers")
 
 module.exports = [
-	
+
 	{
 		route: "/users",
 		method: "post",
@@ -23,6 +23,12 @@ module.exports = [
 		route: "/user/delete",
 		method: "post",
 		handler: UserHandlers.delete
+	},
+
+	{
+		route: "/user/create/fake",
+		method: "post",
+		handler: UserHandlers.createFake
 	}
 
 ]

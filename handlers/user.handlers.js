@@ -28,6 +28,13 @@ module.exports = {
 		utils.delete(token, user_email)
 			.then(message => res.json({ message }))
 			.catch(e => res.json({ error: e.message }));
+	},
+
+	createFake: (req, res) => {
+		const { token } = req.body;
+		utils.createFake(token)
+			.then(message => res.json({ message }))
+			.catch(e => res.json({ error: e.message }));
 	}
 
 }

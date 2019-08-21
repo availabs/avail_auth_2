@@ -102,7 +102,7 @@ export const passwordUpdate = (current, password, onUpdate=null) =>
         		if (res.message) {
         			dispatch(message(res.message));
         		}
-        		if (typeof onUpdate === 'function') onUpdate();
+        		typeof onUpdate === 'function' && onUpdate();
         	}
         });
 		}
@@ -125,7 +125,7 @@ export const passwordSet = (password, onSet=null) =>
             if (res.message) {
               dispatch(message(res.message));
             }
-            if (typeof onSet === 'function') onSet();
+            typeof onSet === 'function' && onSet();
           }
         });
     }
@@ -145,7 +145,7 @@ export const passwordReset = (email, onReset=null) =>
       		if (res.message) {
       			dispatch(message(res.message));
       		}
-      		if (typeof onReset === 'function') onReset();
+      		typeof onReset === 'function' && onReset();
       	}
       })
 

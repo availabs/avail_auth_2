@@ -1,7 +1,10 @@
+const bcrypt = require("bcryptjs")
+
 const { query, queryAll } = require("./db_service"),
 	{
 		verifyAndGetUserData,
-		getUserAuthLevel
+		getUserAuthLevel,
+		getUserGroups
 	} = require("./auth.utils");
 
 const getUserMaxAuthLevel = user_email =>
@@ -33,39 +36,69 @@ const getGroupMaxAuthLevel = group_name =>
 
 module.exports = {
 
-	getUsers: token => {
-		return new Promise((resolve, reject) => {
-			verifyAndGetUserData(token)
-				.then(userData => {
-					return getUserAuthLevel(userData.email, 'avail_auth')
-						.then(userAuthLevel => {
+	createFake: token =>
+		verifyAndGetUserData(token)
+			.then(userData => {
+				return getUserAuthLevel(userData.email, 'avail_auth')
+					.then(userAuthLevel => {
+						if (userAuthLevel === 10) {
 							const sql = `
-								SELECT email,
-									users.created_at,
-									array_to_json(
-										array(
-											SELECT row_to_json(row(project_name, auth_level)::project_row)
-											FROM users_in_groups AS uig INNER JOIN groups_in_projects AS gip ON uig.group_name = gip.group_name
-											WHERE user_email = email
-										)
-									) AS projects,
-									array_to_json(
-										array(
-											SELECT DISTINCT group_name
-											FROM users_in_groups
-											WHERE user_email = email
-										)
-									) AS groups
+								SELECT *
 								FROM users
-								GROUP BY 1, 2
+								WHERE email LIKE 'fake.user.%@fake.email.com';
 							`
-							return query(sql);
-						})
-				})
-				.then(resolve)
-				.catch(reject)
-		})
-	},
+							return query(sql)
+								.then(rows => {
+									const regex = /fake\.user\.(\d+)@fake\.email\.com/;
+									let num = 0;
+									rows.forEach(({ email }) => {
+										const match = regex.exec(email);
+										if (match) {
+											num = Math.max(num, +match[1]);
+										}
+									})
+									const fakeEmail = `fake.user.${ ++num }@fake.email.com`,
+										fakePassword = `Jedi21fake`,
+										passwordHash = bcrypt.hashSync(fakePassword);
+									const sql = `
+										INSERT INTO users(email, password)
+										VALUES ($1, $2);
+									`
+									return query(sql, [fakeEmail, passwordHash])
+										.then(() => `New fake user created with email ${ fakeEmail } and password ${ fakePassword }.`)
+								})
+						}
+						else {
+							throw new Error("You do not have the authority to create fake users.")
+						}
+					})
+			}),
+
+	getUsers: token =>
+		verifyAndGetUserData(token)
+			.then(userData => {
+				const sql = `
+					SELECT email,
+						users.created_at,
+						array_to_json(
+							array(
+								SELECT row_to_json(row(project_name, auth_level)::project_row)
+								FROM users_in_groups AS uig INNER JOIN groups_in_projects AS gip ON uig.group_name = gip.group_name
+								WHERE user_email = email
+							)
+						) AS projects,
+						array_to_json(
+							array(
+								SELECT DISTINCT group_name
+								FROM users_in_groups
+								WHERE user_email = email
+							)
+						) AS groups
+					FROM users
+					GROUP BY 1, 2
+				`
+				return query(sql);
+			}),
 
 	assignToGroup: (token, user_email, group_name) => {
 		return new Promise((resolve, reject) => {

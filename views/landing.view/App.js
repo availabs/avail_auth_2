@@ -145,7 +145,6 @@ class LandingView extends Component {
     return headerItems;
   }
 	render() {
-console.log("USER:", this.props.user);
 		const { authed, authLevel } = this.props.user,
       links = authed ? [] :
       [
