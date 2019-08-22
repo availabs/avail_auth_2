@@ -9,6 +9,13 @@ module.exports = {
 			.catch(e => res.json({ error: e.message }));
 	},
 
+	getUsersByGroup: (req, res) => {
+		const { token, groups } = req.body;
+		utils.getUsersByGroup(token, groups)
+			.then(users => res.json({ users }))
+			.catch(e => res.json({ error: e.message }));
+	},
+
 	assignToGroup: (req, res) => {
 		const { token, user_email, group_name } = req.body;
 		utils.assignToGroup(token, user_email, group_name)

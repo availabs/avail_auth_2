@@ -7,6 +7,11 @@ module.exports = [
 		method: "post",
 		handler: UserHandlers.getUsers
 	},
+	{
+		route: "/users/bygroup",
+		method: "post",
+		handler: UserHandlers.getUsersByGroup
+	},
 
 	{
 		route: "/user/group/assign",

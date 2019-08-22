@@ -100,6 +100,17 @@ module.exports = {
 				return query(sql);
 			}),
 
+	getUsersByGroup: (token,groups) =>
+		verifyAndGetUserData(token)
+			.then(userData => {
+				const sql = `
+					SELECT user_email, group_name, created_at, created_by
+					  FROM users_in_groups
+					  where group_name in (${groups.map(f => `'${f}'`)})
+				`
+				return query(sql);
+			}),
+
 	assignToGroup: (token, user_email, group_name) => {
 		return new Promise((resolve, reject) => {
 			verifyAndGetUserData(token)
