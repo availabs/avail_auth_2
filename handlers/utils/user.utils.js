@@ -104,9 +104,11 @@ module.exports = {
 		verifyAndGetUserData(token)
 			.then(userData => {
 				const sql = `
-					SELECT user_email, group_name, created_at, created_by
-					  FROM users_in_groups
-					  where group_name in (${groups.map(f => `'${f}'`)})
+					SELECT user_email, uig.group_name, gip.auth_level
+					  FROM users_in_groups uig
+					  JOIN groups_in_projects gip
+					  ON uig.group_name = gip.group_name
+					  where uig.group_name in (${groups.map(f => `'${f}'`)})
 				`
 				return query(sql);
 			}),
