@@ -108,9 +108,9 @@ module.exports = {
 					  FROM users_in_groups uig
 					  JOIN groups_in_projects gip
 					  ON uig.group_name = gip.group_name
-					  where uig.group_name in (${groups.map(f => `'${f}'`)})
+					  where uig.group_name = ANY($1)
 				`
-				return query(sql);
+				return query(sql, [groups]);
 			}),
 
 	assignToGroup: (token, user_email, group_name) => {
