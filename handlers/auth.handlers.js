@@ -41,7 +41,7 @@ module.exports = {
 		if (Boolean(addToGroup)) {
 			let projectData = {};
 			if (host && url) {
-				projectData = { HOST: host, URL: url };
+				projectData = {project_name: project, args: {HOST: host, URL: url} };
 			}
 			utils.addToGroup(email, project, addToGroup, projectData)
 				.then(() => res.json({ message: `You should receive an email shortly with instructions for login.` }))
