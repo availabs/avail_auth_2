@@ -29,7 +29,7 @@ const days = [0, 1, 2, 3, 4, 5, 6],
 const day = 1000.0 * 60.0 * 60.0 * 24.0,
   _7days = day * 7,
   _14days = day * 14,
-  _21days = day * 21, 
+  _21days = day * 21,
   _28days = day * 28;
 
 class Stats extends Component {
@@ -72,7 +72,7 @@ class Stats extends Component {
     const { projectFilter } = this.state;
 
     const filtered = logins.filter(login => !projectFilter || (login.project_name === projectFilter));
-    
+
     filtered.forEach(login => {
         const user = login.user_email,
           date = new Date(login.created_at);
@@ -278,6 +278,7 @@ class Stats extends Component {
             ] }/>
         </div>
         <TableContainer
+          size={ 10 }
           headers={[
             "user",
             { label: "7 days",
@@ -293,7 +294,7 @@ class Stats extends Component {
               onClick: () => this.setUserSort("_28days"),
               color: userSort === "_28days" ? 'success' : 'primary' }
           ]}
-          rows={[
+          rows={
             Object.keys(userData)
               .sort((a, b) => userData[b][userSort] - userData[a][userSort])
               .map(user =>
@@ -305,8 +306,9 @@ class Stats extends Component {
                   <td>{ userData[user]["_28days"] }</td>
                 </tr>
               )
-          ]}
+          }
         />
+        <div style={ { padding: "25px 0px" } }/>
       </div>
     )
   }

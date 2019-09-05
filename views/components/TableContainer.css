@@ -1,0 +1,11 @@
+.table-container-controls::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+.table-container-controls > *:first-child {
+  float: left;
+}
+.table-container-controls > *:last-child {
+  float: right;
+}

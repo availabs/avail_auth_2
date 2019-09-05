@@ -1,5 +1,7 @@
 import React, { Component } from 'react';
 
+import "./TableContainer.css"
+
 class TableContainer extends Component {
 	constructor(props) {
 		super(props);
@@ -73,32 +75,40 @@ class TableContainer extends Component {
       		{ (maxPage === 0) ? null :
 	      		<tr>
 	        		<th colSpan={ headers.length } style={ { textAlign: "left" } }>
-	        			<div className="btn-group">
-	          			<button onClick={ this.setPage.bind(this, 0) }
-	          						className="btn btn-sm btn-primary" style={ { width: "4rem" } }>
-	          				first
-	          			</button>
-	          			<button onClick={ this.advancePage.bind(this, -1, maxPage) }
-	          						className="btn btn-sm btn-primary" style={ { width: "4rem" } }>
-	          				prev
-	          			</button>
-	          			{
-	          				pagination.map(p =>
-	          					<button key={ p } onClick={ () => this.setState({ page: p }) }
-	          						className={ `btn btn-sm ${ page === p ? 'btn-info' : 'btn-primary' }` } style={ { width: "3rem" } }>
-	          						{ p + 1 }
-	          					</button>
-	          				)
-	          			}
-	          			<button onClick={ this.advancePage.bind(this, 1, maxPage) }
-	          						className="btn btn-sm btn-primary" style={ { width: "4rem" } }>
-	          				next
-	          			</button>
-	          			<button onClick={ this.setPage.bind(this, maxPage) }
-	          						className="btn btn-sm btn-primary" style={ { width: "4rem" } }>
-	          				last
-	          			</button>
-	          		</div>
+								<div className="table-container-controls">
+
+		        			<div className="btn-group">
+		          			<button onClick={ this.setPage.bind(this, 0) }
+		          						className="btn btn-sm btn-primary" style={ { width: "4rem" } }>
+		          				first
+		          			</button>
+		          			<button onClick={ this.advancePage.bind(this, -1, maxPage) }
+		          						className="btn btn-sm btn-primary" style={ { width: "4rem" } }>
+		          				prev
+		          			</button>
+		          			{
+		          				pagination.map(p =>
+		          					<button key={ p } onClick={ () => this.setState({ page: p }) }
+		          						className={ `btn btn-sm ${ page === p ? 'btn-info' : 'btn-primary' }` } style={ { width: "3rem" } }>
+		          						{ p + 1 }
+		          					</button>
+		          				)
+		          			}
+		          			<button onClick={ this.advancePage.bind(this, 1, maxPage) }
+		          						className="btn btn-sm btn-primary" style={ { width: "4rem" } }>
+		          				next
+		          			</button>
+		          			<button onClick={ this.setPage.bind(this, maxPage) }
+		          						className="btn btn-sm btn-primary" style={ { width: "4rem" } }>
+		          				last
+		          			</button>
+		          		</div>
+
+									<div style={ { paddingTop: "5px" } }>
+										{ `Showing ${ page * size + 1 } - ${ Math.min(page * size + size, rows.length) } of ${ rows.length }` }
+									</div>
+
+								</div>
 	        		</th>
 	        	</tr>
 	        }
