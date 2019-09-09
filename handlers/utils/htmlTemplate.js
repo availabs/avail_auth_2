@@ -56,4 +56,4 @@ module.exports = {
 		HTML_TEMPLATE_NO_CLICK
 			.replace("__BODY_1__", body1)
 			.replace("__BODY_2__", body2),
-}			
+}

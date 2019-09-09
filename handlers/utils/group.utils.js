@@ -20,7 +20,7 @@ module.exports = {
 									groups.created_by,
 									array_to_json(
 										array(
-											SELECT row_to_json(row(project_name, auth_level)::project_row)
+											SELECT row_to_json(row(project_name, group_name, auth_level)::project_row)
 											FROM groups_in_projects
 											WHERE group_name = name
 										)

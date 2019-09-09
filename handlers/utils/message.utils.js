@@ -176,6 +176,8 @@ const sendMessageToAll = (userData, heading, message) => {
 
 module.exports = {
 
+	sendMessageToGroup,
+
 	get: token => {
 		return verifyAndGetUserData(token)
 			.then(userData => {

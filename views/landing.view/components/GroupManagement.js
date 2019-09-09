@@ -123,7 +123,7 @@ class Group extends Component {
 						<option value="" hidden>select a project...</option>
 						{
 							projects.map(p =>
-								<option key={ p.name } value={ p.name }>({ p.auth_level }) { p.name }</option>
+								<option key={ p.project_name } value={ p.project_name }>({ p.auth_level }) { p.project_name }</option>
 							)
 						}
 					</select>
@@ -148,7 +148,7 @@ class Group extends Component {
 						<option value="" hidden>select a project...</option>
 						{
 							allProjects
-								.filter(p => projects.reduce((a, c) => a && (c.name !== p.name), true))
+								.filter(p => projects.reduce((a, c) => a && (c.project_name !== p.name), true))
 								.map(p => <option key={ p.name } value={ p.name }>{ p.name }</option>)
 						}
 					</select>
@@ -171,7 +171,7 @@ class Group extends Component {
 						<option value="" hidden>select a project...</option>
 						{
 							projects.map(p =>
-								<option key={ p.name } value={ p.name }>({ p.auth_level }) { p.name }</option>
+								<option key={ p.project_name } value={ p.project_name }>({ p.auth_level }) { p.project_name }</option>
 							)
 						}
 					</select>
@@ -277,7 +277,7 @@ class GroupManagement extends Component {
 	        	rows={
 	            groups
 	            	.filter(g => g.name.toLowerCase().includes(searchFilter.toLowerCase()))
-	            	.filter(g => !projectFilter || g.projects.reduce((a, c) => a || c.name === projectFilter, false))
+	            	.filter(g => !projectFilter || g.projects.reduce((a, c) => a || c.project_name === projectFilter, false))
 	            	.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf())
 	              .map(g =>
 	                <Group key={ g.name } { ...g }

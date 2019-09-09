@@ -46,6 +46,7 @@ class RequestItem extends Component {
       project_name,
       created_at
     } = this.props.request;
+console.log("GROUPS:", this.props.groups);
     return (
       <tr>
         <td>{ user_email }</td>
@@ -57,7 +58,8 @@ class RequestItem extends Component {
             <option hidden value="">Select a group...</option>
             {
               this.props.groups
-                .filter(g => g.projects.reduce((a, c) => a || (c.name === project_name), false))
+                .filter(g => g.projects.reduce((a, c) => a || (c.project_name === project_name), false))
+                .sort((a, b) => a.name < b.name ? -1 : 1)
                 .map(({ name }) =>
                   <option key={ name } value={ name }>{ name }</option>
                 )

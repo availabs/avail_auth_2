@@ -251,32 +251,56 @@ console.log(this.props.createFake)
 			deleteRequest,
 			user
 		} = this.props;
+
 		const {
 			groupFilter,
+			projectFilter,
 			searchFilter
 		} = this.state;
-		const filteredUsers = users
+
+		const noGroupUsers = users.filter(u => u.groups.length === 0)
 			.filter(u => !groupFilter || u.groups.includes(groupFilter))
+			.filter(u => !projectFilter || u.projects.reduce((a, c) => a || c.project_name === projectFilter, false))
     	.filter(u => u.email.toLowerCase().includes(searchFilter.toLowerCase()))
     	.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf());
+
+		const authLevelZeroUsers = users.filter(u => u.projects.reduce((a, c) => Math.max(a, c.auth_level), -1) === 0)
+			.filter(u => !groupFilter || u.groups.includes(groupFilter))
+			.filter(u => !projectFilter || u.projects.reduce((a, c) => a || c.project_name === projectFilter, false))
+    	.filter(u => u.email.toLowerCase().includes(searchFilter.toLowerCase()))
+    	.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf());
+
+		const filteredUsers = users
+			.filter(u => !groupFilter || u.groups.includes(groupFilter))
+			.filter(u => !projectFilter || u.projects.reduce((a, c) => a || c.project_name === projectFilter, false))
+    	.filter(u => u.email.toLowerCase().includes(searchFilter.toLowerCase()))
+    	.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf());
+
+		const rejectedRequests = requests.filter(r => r.state === "rejected");
+
+ 		const projects = groups.reduce((a, c) => [...new Set([...a, ...c.projects.map(p => p.project_name)])], []);
+
 		return (
-			<div className="container">
+			<div className="container" style={ { marginBottom: "40px" } }>
         <h3>User Management</h3>
         <table className="table table-sm">
           <thead>
           	<tr>
           		<th>Search Users</th>
           		<th>Group Filter</th>
+							<th>Project Filter</th>
           	</tr>
           	<tr>
           		<td>
           			<input type="text" className="form-control form-control-sm"
           				placeholder="search user emails..." id="searchFilter"
+									value={ searchFilter }
           				onChange={ this.onChange.bind(this) }/>
           		</td>
           		<td>
           			<select className="form-control form-control-sm"
-          				onChange={ this.onChange.bind(this) } id="groupFilter">
+          				onChange={ this.onChange.bind(this) } id="groupFilter"
+									value={ groupFilter }>
           				<option value="">None</option>
           				{
           					groups.sort((a, b) => a.name < b.name ? -1 : 1)
@@ -284,9 +308,55 @@ console.log(this.props.createFake)
           				}
           			</select>
           		</td>
+          		<td>
+          			<select className="form-control form-control-sm"
+          				onChange={ this.onChange.bind(this) } id="projectFilter"
+									value={ projectFilter }>
+          				<option value="">None</option>
+          				{
+          					projects.sort((a, b) => a.name < b.name ? -1 : 1)
+          						.map(p => <option value={ p } key={ p }>{ p }</option>)
+          				}
+          			</select>
+          		</td>
           	</tr>
           </thead>
         </table>
+				{ !noGroupUsers.length ? null :
+					<>
+						<h3>No Group Users</h3>
+		        <TableContainer
+		        	headers={ ["email", "join date", "groups", "remove", "groups", "assign", "delete"] }
+		        	rows={
+		        		noGroupUsers.map(u =>
+			            <User key={ u.email } { ...u }
+			            	allGroups={ groups }
+			            	deleteUser={ deleteUser }
+			            	message={ message }
+			            	assign={ assign }
+			            	remove={ remove }/>
+			          )
+				      }/>
+					</>
+				}
+				{ !authLevelZeroUsers.length ? null :
+					<>
+						<h3>Auth Level Zero Users</h3>
+		        <TableContainer
+		        	headers={ ["email", "join date", "groups", "remove", "groups", "assign", "delete"] }
+		        	rows={
+		        		authLevelZeroUsers.map(u =>
+			            <User key={ u.email } { ...u }
+			            	allGroups={ groups }
+			            	deleteUser={ deleteUser }
+			            	message={ message }
+			            	assign={ assign }
+			            	remove={ remove }/>
+			          )
+				      }/>
+					</>
+				}
+	      <h3>All Users</h3>
         <TableContainer
         	headers={ ["email", "join date", "groups", "remove", "groups", "assign", "delete"] }
         	rows={
@@ -307,20 +377,25 @@ console.log(this.props.createFake)
 						</button>
 					</div>
 				}
-        <h3>Rejected Requests</h3>
-        <TableContainer
-        	headers={ ["email", "project", "date", "groups", "accept", "delete"] }
-        	rows={
-            requests.filter(r => r.state === "rejected")
-              .map(r =>
-                <RejectedUser key={ r.user_email }
-                	request={ r }
-                	groups={ groups }
-                	accept={ accept }
-              		message={ message }
-              		deleteRequest={ deleteRequest }/>
-              )
-		      }/>
+
+				{ !rejectedRequests.length ? null :
+					<>
+		        <h3>Rejected Requests</h3>
+		        <TableContainer
+		        	headers={ ["email", "project", "date", "groups", "accept", "delete"] }
+		        	rows={
+		            rejectedRequests
+		              .map(r =>
+		                <RejectedUser key={ r.user_email }
+		                	request={ r }
+		                	groups={ groups }
+		                	accept={ accept }
+		              		message={ message }
+		              		deleteRequest={ deleteRequest }/>
+		              )
+				      }/>
+					</>
+				}
 
 			</div>
 		)

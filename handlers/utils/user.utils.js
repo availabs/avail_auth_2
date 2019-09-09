@@ -82,7 +82,7 @@ module.exports = {
 						users.created_at,
 						array_to_json(
 							array(
-								SELECT row_to_json(row(project_name, auth_level)::project_row)
+								SELECT row_to_json(row(project_name, gip.group_name, auth_level)::project_row)
 								FROM users_in_groups AS uig INNER JOIN groups_in_projects AS gip ON uig.group_name = gip.group_name
 								WHERE user_email = email
 							)
@@ -207,59 +207,55 @@ module.exports = {
 		})
 	},
 
-	delete: (token, user_email) => {
-		return new Promise((resolve, reject) => {
-			verifyAndGetUserData(token)
-				.then(userData => {
-					const sql = `
-						SELECT project_name, auth_level
-						FROM users_in_groups AS uig
-						INNER JOIN groups_in_projects AS gip
-						ON uig.group_name = gip.group_name
-						WHERE user_email = $1;
-					`
-					return query(sql, [user_email])
-						.then(rows => {
-							const map = {}
-							rows.forEach(({ project_name, auth_level }) => {
-								map[project_name] = auth_level;
-							})
-							const sql = `
-								SELECT project_name, auth_level
-								FROM users_in_groups AS uig
-								INNER JOIN groups_in_projects AS gip
-								ON uig.group_name = gip.group_name
-								WHERE user_email = $1
-							`
-							return query(sql, [userData.email])
-								.then(rows => {
-									rows.forEach(({ project_name, auth_level }) => {
-										if ((project_name in map) && (map[project_name] <= auth_level)) {
-											delete map[project_name];
-										}
-									})
-									if (Object.keys(map).length === 0) {
-										const sqlAndValues = [
-											[`DELETE FROM users
-												WHERE email = $1;`, [user_email]],
-											[`DELETE FROM users_in_groups
-												WHERE user_email = $1`, [user_email]],
-											[`DELETE FROM signup_requests
-												WHERE user_email = $1;`, [user_email]],
-											[`DELETE FROM logins
-												WHERE user_email = $1;`, [user_email]]
-										]
-										return queryAll(sqlAndValues)
-											.then(() => resolve(`Deleted user ${ user_email }.`));
-									}
-									else {
-										throw new Error(`You do not have the authority to delete user ${ user_email }.`);
+	delete: (token, user_email) =>
+		verifyAndGetUserData(token)
+			.then(userData => {
+				const sql = `
+					SELECT project_name, auth_level
+					FROM users_in_groups AS uig
+					INNER JOIN groups_in_projects AS gip
+					ON uig.group_name = gip.group_name
+					WHERE user_email = $1;
+				`
+				return query(sql, [user_email])
+					.then(rows => {
+						const map = {}
+						rows.forEach(({ project_name, auth_level }) => {
+							map[project_name] = auth_level;
+						})
+						const sql = `
+							SELECT project_name, auth_level
+							FROM users_in_groups AS uig
+							INNER JOIN groups_in_projects AS gip
+							ON uig.group_name = gip.group_name
+							WHERE user_email = $1
+						`
+						return query(sql, [userData.email])
+							.then(rows => {
+								rows.forEach(({ project_name, auth_level }) => {
+									if ((project_name in map) && (map[project_name] <= auth_level)) {
+										delete map[project_name];
 									}
 								})
-						})
-				})
-				.catch(reject)
-		})
-	}
+								if (Object.keys(map).length === 0) {
+									const sqlAndValues = [
+										[`DELETE FROM users
+											WHERE email = $1;`, [user_email]],
+										[`DELETE FROM users_in_groups
+											WHERE user_email = $1`, [user_email]],
+										[`DELETE FROM signup_requests
+											WHERE user_email = $1;`, [user_email]],
+										[`DELETE FROM logins
+											WHERE user_email = $1;`, [user_email]]
+									]
+									return queryAll(sqlAndValues)
+										.then(() => `Deleted user ${ user_email }.`);
+								}
+								else {
+									throw new Error(`You do not have the authority to delete user ${ user_email }.`);
+								}
+							})
+					})
+			})
 
 }
