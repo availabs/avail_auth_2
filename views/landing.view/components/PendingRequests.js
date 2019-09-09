@@ -46,7 +46,7 @@ class RequestItem extends Component {
       project_name,
       created_at
     } = this.props.request;
-console.log("GROUPS:", this.props.groups);
+    
     return (
       <tr>
         <td>{ user_email }</td>

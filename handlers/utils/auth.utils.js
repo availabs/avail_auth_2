@@ -172,12 +172,13 @@ const createNewUser = user_email =>	{
 					passwordHash = bcrypt.hashSync(password),
 					sql = `
 						INSERT INTO users(email, password)
-						VALUES ($1, $2);
+						VALUES ($1, $2)
+						RETURNING *;
 					`
 				return query(sql, [user_email, passwordHash])
-					.then(() => ({ password, passwordHash }))
+					.then(rows => rows.length ? ({ password, passwordHash, id: rows[0].id }) : ({}))
 			}
-			return {};
+			throw new Error("user email already exists.");
 		})
 }
 const sendAcceptEmail = (user_email, password, passwordHash, project_name, HOST, URL) => {
@@ -355,9 +356,10 @@ console.log("<auth.utils.addToGroup>", project_name, projectData, HOST, URL)
 								return query(sql, [user_email, group_name, 'auto-accept'])
 									.then(() => {
 										return createNewUser(user_email)
-											.then(({ password, passwordHash }) => {
+											.then(({ password, passwordHash, id }) => {
 												if (password && passwordHash) {
-													return sendAcceptEmail(user_email, password, passwordHash, project_name, HOST, URL);
+													return sendAcceptEmail(user_email, password, passwordHash, project_name, HOST, URL)
+														.then(() => getUser(user_email, passwordHash, project_name, id));
 												}
 											})
 									})
@@ -405,7 +407,7 @@ console.log("<auth.utils.signupAccept>", project_name, projectData, HOST, URL)
 										return query(sql, args)
 											.then(() => {
 												return createNewUser(user_email)
-													.then(({ password, passwordHash }) => {
+													.then(({ password, passwordHash, id }) => {
 
 														let promise = null;
 														if (password && passwordHash) {

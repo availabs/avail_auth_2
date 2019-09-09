@@ -41,15 +41,15 @@ module.exports = {
 		if (Boolean(addToGroup)) {
 			let projectData = {};
 			if (host && url) {
-				projectData = {project_name: project, args: {HOST: host, URL: url} };
+				projectData = { HOST: host, URL: url};
 			}
 			utils.addToGroup(email, project, addToGroup, projectData)
-				.then(() => res.json({ message: `You should receive an email shortly with instructions for login.` }))
+				.then(user => res.json({ user, message: `You should receive an email shortly with login information.` }))
 				.catch(error => res.json({ error: error.message }));
 		}
 		else {
 			utils.signupRequest(email, project)
-				.then(user => res.json({ message: "Your request is pending. You should receive an email shortly." }))
+				.then(() => res.json({ message: "Your request is pending. You should receive an email shortly." }))
 				.catch(error => res.json({ error: error.message }));
 		}
 	},
