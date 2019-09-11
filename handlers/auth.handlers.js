@@ -117,8 +117,8 @@ module.exports = {
 			.catch(error => res.json({ error: error.message }));
 	},
 	passwordReset: (req, res) => {
-		const { email } = req.body;
-		utils.passwordReset(email)
+		const { email, project_name } = req.body;
+		utils.passwordReset(email, project_name)
 			.then(() => res.json({ message: "Your password has been reset. You should receive an email shortly." }))
 			.catch(error => res.json({ error: error.message }));
 	}

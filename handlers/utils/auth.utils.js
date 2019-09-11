@@ -6,7 +6,6 @@ const bcrypt = require("bcryptjs"),
 	{ query } = require("./db_service"),
 	{ send } = require("./mail_service"),
 
-	{ host } = require("./host.json"),
 	{ getProjectData } = require("./getProjectData"),
 
 	{
@@ -559,39 +558,40 @@ console.log("<auth.utils.signupAccept>", project_name, projectData, HOST, URL)
 				.catch(reject)
 		})
 	},
-	passwordReset: email => {
+	passwordReset: (email, project_name = "avail_auth") => {
 		email = email.toLowerCase();
+		const {
+			HOST
+		} = getProjectData(project_name);
 
-		return new Promise((resolve, reject) => {
-			getUserData(email)
-				.then(userData => {
-					if (userData) {
-						const password = passwordGen(),
-							passwordHash = bcrypt.hashSync(password),
-							sql = `
-								UPDATE users
-								SET password = $1
-								WHERE email = $2;
-							`
-						query(sql, [passwordHash, email])
-							.then(() => sign(email, passwordHash))
-							.then(token =>
-								resolve(send(email,
-									"Password Reset.",
-									`Your password has been reset. Your new password is: ${ password }`,
-									htmlTemplate(
-										`Your password has been reset.`,
-										`<div>Your new password is:</div><div><h3>${ password }</h3></div><div>Visit ${ host } and login with your new password, or click the button below within 6 hours, to set a new password.</div>`,
-										`${ host }/password/set/${ token }`,
-										"Click here to set a new password"
-									)
-								))
-							)
-					}
-					else {
-						reject(new Error("Unknown email."))
-					}
-				})
-		})
+		return getUserData(email)
+			.then(userData => {
+				if (userData) {
+					const password = passwordGen(),
+						passwordHash = bcrypt.hashSync(password),
+						sql = `
+							UPDATE users
+							SET password = $1
+							WHERE email = $2;
+						`
+					return query(sql, [passwordHash, email])
+						.then(() => sign(email, passwordHash))
+						.then(token =>
+							resolve(send(email,
+								"Password Reset.",
+								`Your password has been reset. Your new password is: ${ password }`,
+								htmlTemplate(
+									`Your password has been reset.`,
+									`<div>Your new password is:</div><div><h3>${ password }</h3></div><div>Visit ${ HOST } and login with your new password, or click the button below within 6 hours, to set a new password.</div>`,
+									`${ HOST }/password/set/${ token }`,
+									"Click here to set a new password"
+								)
+							))
+						)
+				}
+				else {
+					throw new Error("Unknown email.");
+				}
+			})
 	}
 }
