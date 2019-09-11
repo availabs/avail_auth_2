@@ -564,6 +564,7 @@ console.log("<auth.utils.signupAccept>", project_name, projectData, HOST, URL)
 			HOST
 		} = getProjectData(project_name);
 
+console.log("PROJECT NAME:", project_name, HOST);
 		return getUserData(email)
 			.then(userData => {
 				if (userData) {
@@ -577,7 +578,7 @@ console.log("<auth.utils.signupAccept>", project_name, projectData, HOST, URL)
 					return query(sql, [passwordHash, email])
 						.then(() => sign(email, passwordHash))
 						.then(token =>
-							resolve(send(email,
+							send(email,
 								"Password Reset.",
 								`Your password has been reset. Your new password is: ${ password }`,
 								htmlTemplate(
@@ -586,7 +587,7 @@ console.log("<auth.utils.signupAccept>", project_name, projectData, HOST, URL)
 									`${ HOST }/password/set/${ token }`,
 									"Click here to set a new password"
 								)
-							))
+							)
 						)
 				}
 				else {
