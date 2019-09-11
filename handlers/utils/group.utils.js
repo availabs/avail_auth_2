@@ -7,44 +7,44 @@ const {
 
 module.exports = {
 
-	get: (token) => {
-		return new Promise((resolve, reject) => {
-			verifyAndGetUserData(token)
-				.then(userData => {
-					getUserAuthLevel(userData.email, 'avail_auth')
-						.then(authLevel => {
-							const sql = `
-								SELECT name,
-									meta::TEXT,
-									groups.created_at,
-									groups.created_by,
-									array_to_json(
-										array(
-											SELECT row_to_json(row(project_name, group_name, auth_level)::project_row)
-											FROM groups_in_projects
-											WHERE group_name = name
-										)
-									) AS projects
-								FROM groups
-								WHERE name NOT IN (
-									SELECT group_name
-									FROM groups_in_projects
-									WHERE project_name NOT IN (
-										SELECT project_name
-										FROM users_in_groups AS uig INNER JOIN groups_in_projects AS gip ON uig.group_name = gip.group_name
-										WHERE user_email = $1
-									)
-								)
-								GROUP BY 1, 2, 3, 4
-							`;
-							query(sql, [userData.email])
-								.then(resolve)
-								.catch(reject);
-						})
-				})
-				.catch(reject)
-		})
-	},
+	get: (token) =>
+		verifyAndGetUserData(token)
+			.then(userData => {
+				const sql = `
+					WITH user_projects AS (
+						SELECT project_name, MAX(auth_level) AS auth_level
+						FROM users_in_groups AS uig
+						INNER JOIN groups_in_projects AS gip
+						ON uig.group_name = gip.group_name
+						WHERE user_email = $1
+						GROUP BY 1
+					)
+					SELECT name,
+						meta::TEXT,
+						groups.created_at,
+						groups.created_by,
+						(SELECT COUNT(1) FROM users_in_groups WHERE group_name = name) AS num_members,
+						array_to_json(
+							array(
+								SELECT row_to_json(row(project_name, group_name, auth_level)::project_row)
+								FROM groups_in_projects
+								WHERE group_name = name
+							)
+						) AS projects
+					FROM groups
+					WHERE name NOT IN (
+						SELECT gip.group_name
+						FROM groups_in_projects AS gip
+						WHERE gip.auth_level > (
+							SELECT COALESCE(MAX(auth_level), -1)
+							FROM user_projects
+							WHERE user_projects.project_name = gip.project_name
+						)
+					)
+					GROUP BY 1, 2, 3, 4
+				`;
+				return query(sql, [userData.email]);
+			}),
 
 	create: (token, name, meta) => {
 		return new Promise((resolve, reject) => {
@@ -52,7 +52,7 @@ module.exports = {
 				.then(userData => {
 					getUserAuthLevel(userData.email, 'avail_auth')
 						.then(authLevel => {
-							if (authLevel >= 1) {
+							if (authLevel >= 5) {
 								const sql = `
 									INSERT INTO groups(name, meta, created_by)
 									VALUES ($1, $2, $3);

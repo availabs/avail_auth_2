@@ -308,7 +308,6 @@ class Stats extends Component {
               )
           }
         />
-        <div style={ { padding: "25px 0px" } }/>
       </div>
     )
   }

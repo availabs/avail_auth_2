@@ -258,7 +258,7 @@ console.log(this.props.createFake)
 			searchFilter
 		} = this.state;
 
-		const noGroupUsers = users.filter(u => u.groups.length === 0)
+		const unassignedUsers = users.filter(u => u.groups.length === 0)
 			.filter(u => !groupFilter || u.groups.includes(groupFilter))
 			.filter(u => !projectFilter || u.projects.reduce((a, c) => a || c.project_name === projectFilter, false))
     	.filter(u => u.email.toLowerCase().includes(searchFilter.toLowerCase()))
@@ -281,7 +281,7 @@ console.log(this.props.createFake)
  		const projects = groups.reduce((a, c) => [...new Set([...a, ...c.projects.map(p => p.project_name)])], []);
 
 		return (
-			<div className="container" style={ { marginBottom: "40px" } }>
+			<div className="container">
         <h3>User Management</h3>
         <table className="table table-sm">
           <thead>
@@ -322,13 +322,13 @@ console.log(this.props.createFake)
           	</tr>
           </thead>
         </table>
-				{ !noGroupUsers.length ? null :
+				{ !unassignedUsers.length ? null :
 					<>
-						<h3>No Group Users</h3>
+						<h3>Unassigned Users</h3>
 		        <TableContainer
 		        	headers={ ["email", "join date", "groups", "remove", "groups", "assign", "delete"] }
 		        	rows={
-		        		noGroupUsers.map(u =>
+		        		unassignedUsers.map(u =>
 			            <User key={ u.email } { ...u }
 			            	allGroups={ groups }
 			            	deleteUser={ deleteUser }

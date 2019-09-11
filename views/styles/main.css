@@ -29,6 +29,10 @@ body {
   to { transform: rotate(360deg); }
 }
 
+.container {
+  margin-bottom: 40px;
+}
+
 /*
   SYSTEM MESSAGE STYLES
 */

@@ -101,7 +101,8 @@ class Group extends Component {
 			created_by,
 			projects,
 			allProjects,
-			authLevel
+			authLevel,
+			num_members
 		} = this.props;
 		const {
 			removeFrom,
@@ -115,7 +116,7 @@ class Group extends Component {
 				<td>{ name }</td>
 				<td>{ created_by }</td>
 				<td>{ new Date(created_at).toLocaleString() }</td>
-
+				<td>{ num_members }</td>
 				<td>
 					<select value={ adjust } id="adjust"
 						className="form-control form-control-sm"
@@ -223,6 +224,10 @@ class GroupManagement extends Component {
 			searchFilter,
 			projectFilter
 		} = this.state;
+
+		const unassignedGroups = groups.filter(g => !g.projects.length)
+			.filter(g => g.name.toLowerCase().includes(searchFilter.toLowerCase()))
+			.filter(g => !projectFilter || g.projects.reduce((a, c) => a || c.project_name === projectFilter, false));
 		return (
 			<div>
 				<div className="container">
@@ -258,12 +263,49 @@ class GroupManagement extends Component {
 	          </thead>
 	        </table>
 			  </div>
+				{ !unassignedGroups.length ? null :
+					<>
+						<h3>Unassigned Groups</h3>
+						<TableContainer
+		        	headers={ [
+		            "name",
+		            "created by",
+		            "created at",
+								"members",
+		            "projects",
+		            "authority",
+		            "adjust",
+		            "projects",
+		            "authority",
+		            "assign",
+		            "projects",
+		            "remove",
+		            "delete"
+		        	] }
+		        	rows={
+		            unassignedGroups
+		            	.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf())
+		              .map(g =>
+		                <Group key={ g.name } { ...g }
+		                	authLevel={ this.props.user.authLevel }
+		                	message={ this.props.message }
+		                	allProjects={ projects }
+		                	assignToProject={ this.props.assignToProject }
+		                	removeFromProject={ this.props.removeFromProject }
+		                	deleteGroup={ this.props.deleteGroup }
+		                	adjustAuthLevel={ this.props.adjustAuthLevel }/>
+		              )
+		        	}/>
+					</>
+				}
+				<h3>All Groups</h3>
 	      <div className="container-fluid">
 	        <TableContainer
-	        	headers={[
+	        	headers={ [
 	            "name",
 	            "created by",
 	            "created at",
+							"members",
 	            "projects",
 	            "authority",
 	            "adjust",
@@ -273,7 +315,7 @@ class GroupManagement extends Component {
 	            "projects",
 	            "remove",
 	            "delete"
-	        	]}
+	        	] }
 	        	rows={
 	            groups
 	            	.filter(g => g.name.toLowerCase().includes(searchFilter.toLowerCase()))

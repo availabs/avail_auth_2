@@ -78,26 +78,45 @@ module.exports = {
 		verifyAndGetUserData(token)
 			.then(userData => {
 				const sql = `
-					SELECT email,
-						users.created_at,
-						array_to_json(
-							array(
-								SELECT row_to_json(row(project_name, gip.group_name, auth_level)::project_row)
-								FROM users_in_groups AS uig INNER JOIN groups_in_projects AS gip ON uig.group_name = gip.group_name
-								WHERE user_email = email
-							)
-						) AS projects,
-						array_to_json(
-							array(
-								SELECT DISTINCT group_name
-								FROM users_in_groups
-								WHERE user_email = email
-							)
-						) AS groups
-					FROM users
-					GROUP BY 1, 2
+				WITH user_projects AS (
+					SELECT project_name, MAX(auth_level) AS auth_level
+					FROM users_in_groups AS uig
+					INNER JOIN groups_in_projects AS gip
+					ON uig.group_name = gip.group_name
+					WHERE user_email = $1
+					GROUP BY 1
+				)
+				SELECT email,
+				users.created_at,
+				array_to_json(
+					array(
+						SELECT row_to_json(row(project_name, gip.group_name, auth_level)::project_row)
+						FROM users_in_groups AS uig INNER JOIN groups_in_projects AS gip ON uig.group_name = gip.group_name
+						WHERE user_email = email
+					)
+				) AS projects,
+				array_to_json(
+					array(
+						SELECT DISTINCT group_name
+						FROM users_in_groups
+						WHERE user_email = email
+					)
+				) AS groups
+				FROM users
+				WHERE email NOT IN (
+					SELECT DISTINCT user_email
+					FROM users_in_groups AS uig
+					INNER JOIN groups_in_projects AS gip
+					ON uig.group_name = gip.group_name
+					WHERE auth_level > (
+						SELECT COALESCE(MAX(auth_level), -1)
+						FROM user_projects
+						WHERE user_projects.project_name = gip.project_name
+					)
+				)
+				GROUP BY 1, 2
 				`
-				return query(sql);
+				return query(sql, [userData.email]);
 			}),
 
 	getUsersByGroup: (token,groups) =>
