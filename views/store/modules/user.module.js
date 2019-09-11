@@ -5,8 +5,8 @@ import { postJson } from "./utils"
 export const project = "avail_auth";
 
 const SUCCESS = "SUCCESS",
-
-	LOGOUT = "LOGOUT";
+	LOGOUT = "LOGOUT",
+	UPDATE_USER = "UPDATE_USER";
 
 const setUserToken = user => {
 	if (localStorage) {
@@ -99,6 +99,12 @@ export const passwordUpdate = (current, password, onUpdate=null) =>
         	}
         	else {
 	        	setUserToken(res);
+						dispatch({
+							type: UPDATE_USER,
+							update: {
+								token: res.token
+							}
+						})
         		if (res.message) {
         			dispatch(message(res.message));
         		}
@@ -122,6 +128,12 @@ export const passwordSet = (password, onSet=null) =>
           }
           else {
             setUserToken(res);
+						dispatch({
+							type: UPDATE_USER,
+							update: {
+								token: res.token
+							}
+						})
             if (res.message) {
               dispatch(message(res.message));
             }
@@ -153,7 +165,8 @@ const INITIAL_STATE = {
 	authed: false,
 	token: null,
 	authLevel: 0,
-	groups: []
+	groups: [],
+	meta: []
 }
 
 export default (state=INITIAL_STATE, action) => {
@@ -168,6 +181,8 @@ export default (state=INITIAL_STATE, action) => {
 			};
 		case LOGOUT:
 			return { ...INITIAL_STATE };
+		case UPDATE_USER:
+			return { ...INITIAL_STATE, ...state, ...action.update };
 		default:
 			return state;
 	}

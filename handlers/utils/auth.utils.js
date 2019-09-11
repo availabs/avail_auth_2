@@ -564,7 +564,6 @@ console.log("<auth.utils.signupAccept>", project_name, projectData, HOST, URL)
 			HOST
 		} = getProjectData(project_name);
 
-console.log("PROJECT NAME:", project_name, HOST);
 		return getUserData(email)
 			.then(userData => {
 				if (userData) {
