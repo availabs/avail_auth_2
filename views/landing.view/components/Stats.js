@@ -2,6 +2,13 @@ import React, { Component } from 'react';
 import { connect } from "react-redux"
 
 import { ResponsiveLine } from '@nivo/line'
+import AvlGraph from "../../../AvlGraph"
+import {
+  AxisLeft,
+  AxisBottom,
+  LineGraph,
+  Group
+} from "../../../AvlGraph/components"
 
 import {
   getLogins
@@ -10,6 +17,8 @@ import {
 import {
   message
 } from "../../store/modules/systemMessages.module"
+
+import { scaleLinear } from "d3-scale"
 
 import TableContainer from "../../components/TableContainer.react"
 
@@ -180,6 +189,11 @@ class Stats extends Component {
       userSort,
       projectFilter
     } = this.state;
+
+    const colorScale = scaleLinear()
+      .domain([1, lineData.length])
+      .range(["#000", "#0f0"])
+
     return (
       <div className="container">
         <h3>Stats</h3>
@@ -209,73 +223,19 @@ class Stats extends Component {
             </table>
           </div>
         </div>
-        <div style={ { width: "100%", height: "400px" } }>
-          <ResponsiveLine data={ lineData.slice() }
-            stacked={ false }
-            margin={ {
-                "top": 25,
-                "right": 100,
-                "bottom": 75,
-                "left": 75
-            } }
-            colors={ lineData.map(d => d.color) }
-            xScale={ {
-                "type": "point"
-            } }
-            yScale={ {
-                "type": "linear",
-                "stacked": false,
-                "min": 0,
-                "max": "auto"
-            } }
-            axisBottom={ {
-                "orient": "bottom",
-                "tickSize": 5,
-                "tickPadding": 5,
-                "tickRotation": 0,
-                "legend": "weekday",
-                "legendOffset": 36,
-                "legendPosition": "center",
-                "format": d => getDayName(d)
-            } }
-            axisLeft={ {
-                "orient": "left",
-                "tickSize": 5,
-                "tickPadding": 5,
-                "tickRotation": 0,
-                "legend": "logins",
-                "legendOffset": -50,
-                "legendPosition": "center"
-            } }
-            dotSize={ 10 }
-            dotColor="inherit"
-            dotLabel="y"
-            legends={ [
-                {
-                    "anchor": "bottom-right",
-                    "direction": "column",
-                    "justify": false,
-                    "translateX": 100,
-                    "translateY": 0,
-                    "itemsSpacing": 0,
-                    "itemDirection": "left-to-right",
-                    "itemWidth": 80,
-                    "itemHeight": 20,
-                    "itemOpacity": 1,
-                    "symbolSize": 12,
-                    "symbolShape": "circle",
-                    "symbolBorderColor": "rgba(0, 0, 0, .5)",
-                    "effects": [
-                        {
-                            "on": "hover",
-                            "style": {
-                                "itemBackground": "rgba(0, 0, 0, .03)",
-                                "itemOpacity": 1
-                            }
-                        }
-                    ]
-                }
-            ] }/>
+        <div style={ { width: "100%", height: "400px", marginBottom: "20px" } }>
+          <AvlGraph renderInteractiveLayer={ true }
+            margin={ { left: 50 } }
+            xFormat={ getDayName }
+            padding={ 0.25 }>
+
+            <LineGraph data={ lineData.slice().reverse() }
+              colors={ (d, i) => colorScale(i + 1) }
+              plotPoints={ true }/>
+            <AxisLeft label="Logins"/>
+            <AxisBottom />
+            
+          </AvlGraph>
         </div>
         <TableContainer
           size={ 10 }

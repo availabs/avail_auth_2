@@ -1,0 +1,3 @@
+[submodule "AvlGraph"]
+	path = AvlGraph
+	url = https://github.com/availabs/AvlGraph.git
