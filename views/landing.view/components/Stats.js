@@ -227,6 +227,7 @@ class Stats extends Component {
           <AvlGraph renderInteractiveLayer={ true }
             margin={ { left: 50 } }
             xFormat={ getDayName }
+            yFormat={ y => `${ y } logins` }
             padding={ 0.25 }>
 
             <LineGraph data={ lineData.slice().reverse() }
@@ -234,7 +235,7 @@ class Stats extends Component {
               plotPoints={ true }/>
             <AxisLeft label="Logins"/>
             <AxisBottom />
-            
+
           </AvlGraph>
         </div>
         <TableContainer

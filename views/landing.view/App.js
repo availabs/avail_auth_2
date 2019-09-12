@@ -13,7 +13,7 @@ import Update from "./components/Update"
 import UserManagement from "./components/UserManagement"
 
 import { message } from "../store/modules/systemMessages.module"
-import { logout } from "../store/modules/user.module"
+import { logout, auth } from "../store/modules/user.module"
 
 import { getRequests } from "../store/modules/requests.module"
 
@@ -33,8 +33,10 @@ class LandingView extends Component {
     }
   }
   componentDidMount() {
-    this.props.getMessages();
-    this.props.getRequests();
+    if (this.props.user.authed) {
+      this.props.getMessages();
+      this.props.getRequests();
+    }
   }
   componentWillUnmount() {
     if (this.state.interval) {
@@ -43,6 +45,8 @@ class LandingView extends Component {
   }
   componentDidUpdate(oldProps, oldState) {
     if (!oldProps.user.authed && this.props.user.authed) {
+      this.props.getMessages();
+      this.props.getRequests();
       const interval = setInterval(
         () => { this.props.getMessages(); this.props.getRequests(); }
         , 15000
@@ -173,7 +177,8 @@ const mapDispatchToProps = {
 	logout,
   message,
   getRequests,
-  getMessages
+  getMessages,
+  auth
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(LandingView);
