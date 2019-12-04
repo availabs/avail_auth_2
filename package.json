@@ -54,7 +54,9 @@
     "watch": "nodemon --exec npm run start:dev"
   },
   "nodemonConfig": {
-    "ignore": ["static/*"],
+    "ignore": [
+      "static/*"
+    ],
     "ext": "js, jsx, css, scss"
   },
   "author": ""
