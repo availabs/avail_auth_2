@@ -192,7 +192,7 @@ class Stats extends Component {
 
     const colorScale = scaleLinear()
       .domain([1, lineData.length])
-      .range(["#000", "#0f0"])
+      .range(["#666", "#0f0"])
 
     return (
       <div className="container">

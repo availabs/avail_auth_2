@@ -14,6 +14,7 @@ const bcrypt = require("bcryptjs"),
 	} = require("./htmlTemplate");
 
 const sign = (email, password) => {
+	email = email.toLowerCase();
 	return new Promise((resolve, reject) => {
 		jwt.sign({ email, password }, secret, { expiresIn: '6h' }, (error, token) => {
 			if (error) {
@@ -75,6 +76,7 @@ const passwordGen = () => {
 }
 
 const getUserGroups = (email, project) => {
+	email = email.toLowerCase();
 	const sql = `
 		SELECT uig.group_name AS name,
 			meta,
@@ -91,6 +93,7 @@ const getUserGroups = (email, project) => {
 		// .then(rows => rows.map(row => row.name))
 }
 const getUserAuthLevel = (email, project) => {
+	email = email.toLowerCase();
 	const sql = `
 		SELECT max(auth_level) AS auth_level
 		FROM groups_in_projects AS gip
@@ -102,8 +105,9 @@ const getUserAuthLevel = (email, project) => {
 	return query(sql, [email, project])
 		.then(rows => rows[0].auth_level || 0)
 }
-const getUser = (email, password, project, id) =>
-	getUserGroups(email, project)
+const getUser = (email, password, project, id) => {
+	email = email.toLowerCase();
+	return getUserGroups(email, project)
 		.then(groups =>
 			getUserAuthLevel(email, project)
 				.then(authLevel =>
@@ -118,8 +122,10 @@ const getUser = (email, password, project, id) =>
 						)
 				)
 		)
+}
 
 const hasProjectAccess = (email, project) => {
+	email = email.toLowerCase();
 	const sql = `
 		SELECT DISTINCT project_name
 		FROM users_in_groups AS uig INNER JOIN groups_in_projects AS gip ON uig.group_name = gip.group_name
@@ -130,6 +136,7 @@ const hasProjectAccess = (email, project) => {
 }
 
 const getUserData = email => {
+	email = email.toLowerCase();
 	const sql = `
 		SELECT *
 		FROM users
@@ -158,6 +165,7 @@ const verifyAndGetUserData = token => {
 }
 
 const createNewUser = user_email =>	{
+	user_email = user_email.toLowerCase();
 	const sql = `
 		SELECT count(1) AS count
 		FROM public.users
@@ -181,6 +189,7 @@ const createNewUser = user_email =>	{
 		})
 }
 const sendAcceptEmail = (user_email, password, passwordHash, project_name, HOST, URL) => {
+	user_email = user_email.toLowerCase();
 	return sign(user_email, passwordHash)
 		.then(token => {
 			return send(
@@ -316,6 +325,7 @@ module.exports = {
 	},
 
 	addToGroup: (user_email, project_name, group_name, projectData) => {
+		user_email = user_email.toLowerCase();
 		const {
 			HOST,
 			URL
