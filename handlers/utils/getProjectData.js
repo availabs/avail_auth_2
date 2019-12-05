@@ -1,7 +1,7 @@
 const { host } = require("./host.json")
 
 const PROJECT_DATA = {
-  hazard_mitigation: { HOST: "http://lhmp.availabs.org", URL: "/password/set", name: "Hazard Mitigation" },
+  hazard_mitigation: { HOST: "http://mitigateny.org", URL: "/password/set", name: "Hazard Mitigation" },
   NPMRDS: { HOST: "https://npmrds.availabs.org", URL: "/password/set", name: "NPMRDS" }
 }
 const DEFAULT_PROJECT_DATA = {
