@@ -13,6 +13,8 @@ const bcrypt = require("bcryptjs"),
 		htmlTemplateNoClick
 	} = require("./htmlTemplate");
 
+const hashSync = password => bcrypt.hashSync(password, 10)
+
 const sign = (email, password) => {
 	email = email.toLowerCase();
 	return new Promise((resolve, reject) => {
@@ -46,7 +48,7 @@ const passwordGen = () => {
 	const numbers = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9'],
 		lowers = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z'],
 		uppers = lowers.map(l => l.toUpperCase()),
-		specials = ['!', '@', '#', '$', '%', '&', '?'],
+		specials = ['!', '@', '#', '%', '&', '?'],
 
 		randomSpecials = [
 			specials[getRandomIndex(specials)],
@@ -176,7 +178,7 @@ const createNewUser = user_email =>	{
 		.then(count => {
 			if (count === 0) {
 				const password = passwordGen(),
-					passwordHash = bcrypt.hashSync(password),
+					passwordHash = hashSync(password),
 					sql = `
 						INSERT INTO users(email, password)
 						VALUES ($1, $2)
@@ -330,7 +332,7 @@ module.exports = {
 			HOST,
 			URL
 		} = getProjectData(project_name, projectData);
-console.log("<auth.utils.addToGroup>", project_name, projectData, HOST, URL)
+// console.log("<auth.utils.addToGroup>", project_name, projectData, HOST, URL)
 
 		const sql = `
 			SELECT count(1) AS count
@@ -391,7 +393,7 @@ console.log("<auth.utils.addToGroup>", project_name, projectData, HOST, URL)
 			HOST,
 			URL
 		} = getProjectData(project_name, projectData);
-console.log("<auth.utils.signupAccept>", project_name, projectData, HOST, URL)
+// console.log("<auth.utils.signupAccept>", project_name, projectData, HOST, URL)
 
 		return verifyAndGetUserData(token)
 				.then(userData => {
@@ -535,7 +537,7 @@ console.log("<auth.utils.signupAccept>", project_name, projectData, HOST, URL)
 	passwordSet: (token, password) => {
 		return verifyAndGetUserData(token)
 			.then(userData => {
-				const passwordHash = bcrypt.hashSync(password),
+				const passwordHash = hashSync(password),
 					sql = `
 						UPDATE users
 						SET password = $1
@@ -551,7 +553,7 @@ console.log("<auth.utils.signupAccept>", project_name, projectData, HOST, URL)
 			verifyAndGetUserData(token)
 				.then(userData => {
 					if (bcrypt.compareSync(current, userData.password)) {
-						const passwordHash = bcrypt.hashSync(password),
+						const passwordHash = hashSync(password),
 							sql = `
 								UPDATE users
 								SET password = $1
@@ -571,14 +573,15 @@ console.log("<auth.utils.signupAccept>", project_name, projectData, HOST, URL)
 	passwordReset: (email, project_name = "avail_auth") => {
 		email = email.toLowerCase();
 		const {
-			HOST
+			HOST,
+			URL
 		} = getProjectData(project_name);
 
 		return getUserData(email)
 			.then(userData => {
 				if (userData) {
 					const password = passwordGen(),
-						passwordHash = bcrypt.hashSync(password),
+						passwordHash = hashSync(password),
 						sql = `
 							UPDATE users
 							SET password = $1
@@ -593,7 +596,7 @@ console.log("<auth.utils.signupAccept>", project_name, projectData, HOST, URL)
 								htmlTemplate(
 									`Your password has been reset.`,
 									`<div>Your new password is:</div><div><h3>${ password }</h3></div><div>Visit ${ HOST } and login with your new password, or click the button below within 6 hours, to set a new password.</div>`,
-									`${ HOST }/password/set/${ token }`,
+									`${ HOST }${ URL }/${ token }`,
 									"Click here to set a new password"
 								)
 							)
