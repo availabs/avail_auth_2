@@ -26,7 +26,11 @@ class Group extends Component {
 		}
 	}
 	onChange(e) {
-		this.setState({ [e.target.id]: e.target.value })
+		let value = e.target.value;
+		if (e.target.id.includes("auth_level")) {
+			value = Math.max(-1, Math.min(+value, this.props.authLevel));
+		}
+		this.setState({ [e.target.id]: value })
 	}
 	validateAssign(e) {
 		e.preventDefault();
@@ -113,11 +117,11 @@ class Group extends Component {
 		} = this.state;
 		return (
 			<tr>
-				<td>{ name }</td>
-				<td>{ created_by }</td>
-				<td>{ new Date(created_at).toLocaleString() }</td>
-				<td>{ num_members }</td>
-				<td>
+				<td className="info-group">{ name }</td>
+				<td className="info-group">{ created_by }</td>
+				<td className="info-group">{ new Date(created_at).toLocaleString() }</td>
+				<td className="info-group">{ num_members }</td>
+				<td className="group-1">
 					<select value={ adjust } id="adjust"
 						className="form-control form-control-sm"
 						onChange={ this.onChange.bind(this) }>
@@ -129,20 +133,20 @@ class Group extends Component {
 						}
 					</select>
 				</td>
-				<td>
-					<input type="number" min={ 0 } max={ 10 }
+				<td className="group-1">
+					<input type="number" min={ 0 } max={ authLevel }
 						className="form-control form-control-sm"
 						id="adjusted_auth_level" value={ adjusted_auth_level }
 						onChange={ this.onChange.bind(this) }/>
 				</td>
-				<td>
+				<td className="group-1">
 					<button onClick={ this.validateAdjust.bind(this) }
 						className="btn btn-sm btn-primary">
 						adjust
 					</button>
 				</td>
 
-				<td>
+				<td className="group-2">
 					<select value={ assignTo } id="assignTo"
 						onChange={ this.onChange.bind(this) }
 						className="form-control form-control-sm">
@@ -154,18 +158,18 @@ class Group extends Component {
 						}
 					</select>
 				</td>
-				<td>
-					<input type="number" min={ 0 } max={ 10 }
+				<td className="group-2">
+					<input type="number" min={ 0 } max={ authLevel }
 						className="form-control form-control-sm"
 						id="auth_level" value={ auth_level }
 						onChange={ this.onChange.bind(this) }/>
 				</td>
-				<td>
+				<td className="group-2">
 					<button onClick={ this.validateAssign.bind(this) }
 						className="btn btn-sm btn-primary">assign</button>
 				</td>
 
-				<td>
+				<td className="group-3">
 					<select value={ removeFrom } id="removeFrom"
 						className="form-control form-control-sm"
 						onChange={ this.onChange.bind(this) }>
@@ -177,13 +181,15 @@ class Group extends Component {
 						}
 					</select>
 				</td>
-				<td>
+				<td className="group-3">
 					<button onClick={ this.validateRemove.bind(this) }
 						className="btn btn-sm btn-danger">remove</button>
 				</td>
 
-				<td><button onClick={ this.deleteGroup.bind(this) }
-					className="btn btn-sm btn-danger">delete</button></td>
+				<td className="delete-group">
+					<button onClick={ this.deleteGroup.bind(this) }
+						className="btn btn-sm btn-danger">delete</button>
+				</td>
 			</tr>
 		)
 	}
@@ -219,7 +225,7 @@ class GroupManagement extends Component {
 		}
 	}
 	render() {
-		const { groups, projects } = this.props;
+		const { groups = [], projects = [] } = this.props;
 		const {
 			searchFilter,
 			projectFilter
@@ -264,7 +270,7 @@ class GroupManagement extends Component {
 	        </table>
 			  </div>
 				{ !unassignedGroups.length ? null :
-					<>
+	      	<div className="container-fluid">
 						<h3>Unassigned Groups</h3>
 						<TableContainer
 		        	headers={ [
@@ -282,6 +288,28 @@ class GroupManagement extends Component {
 		            "remove",
 		            "delete"
 		        	] }
+							categories={ [
+								{ name: "Basic Info",
+									className: "info-group",
+									range: [0, 3]
+								},
+								{ name: "Adjust Project Authority",
+									className: "group-1",
+									range: [4, 6]
+								},
+								{ name: "Assign to New Project",
+									className: "group-2",
+									range: [7, 9]
+								},
+								{ name: "Remove from Project",
+									className: "group-3",
+									range: [10, 11]
+								},
+								{ name: "Delete Group",
+									className: "delete-group",
+									range: [12, 12]
+								}
+							] }
 		        	rows={
 		            unassignedGroups
 		            	.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf())
@@ -296,7 +324,7 @@ class GroupManagement extends Component {
 		                	adjustAuthLevel={ this.props.adjustAuthLevel }/>
 		              )
 		        	}/>
-					</>
+					</div>
 				}
 				<h3>All Groups</h3>
 	      <div className="container-fluid">
@@ -316,8 +344,31 @@ class GroupManagement extends Component {
 	            "remove",
 	            "delete"
 	        	] }
+						categories={ [
+							{ name: "Basic Info",
+								className: "info-group",
+								range: [0, 3]
+							},
+							{ name: "Adjust Project Authority",
+								className: "group-1",
+								range: [4, 6]
+							},
+							{ name: "Assign to New Project",
+								className: "group-2",
+								range: [7, 9]
+							},
+							{ name: "Remove from Project",
+								className: "group-3",
+								range: [10, 11]
+							},
+							{ name: "Delete Group",
+								className: "delete-group",
+								range: [12, 12]
+							}
+						] }
 	        	rows={
 	            groups
+								.filter(g => !unassignedGroups.includes(g))
 	            	.filter(g => g.name.toLowerCase().includes(searchFilter.toLowerCase()))
 	            	.filter(g => !projectFilter || g.projects.reduce((a, c) => a || c.project_name === projectFilter, false))
 	            	.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf())

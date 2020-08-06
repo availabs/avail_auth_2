@@ -80,9 +80,9 @@ class User extends Component {
 		const joinDate = new Date(created_at);
 		return (
 			<tr>
-				<td>{ this.props.email }</td>
-				<td>{ `${ joinDate.getMonth() + 1 }/${ joinDate.getDate() }/${ joinDate.getFullYear() }` }</td>
-				<td>
+				<td className="info-group">{ this.props.email }</td>
+				<td className="info-group">{ `${ joinDate.getMonth() + 1 }/${ joinDate.getDate() }/${ joinDate.getFullYear() }` }</td>
+				<td className="group-1">
 					<select value={ removeFrom } id="removeFrom"
 						className="form-control form-control-sm"
 						onChange={ this.onChange.bind(this) }>
@@ -92,13 +92,13 @@ class User extends Component {
 						}
 					</select>
 				</td>
-				<td>
+				<td className="group-1">
 					<button onClick={ this.validateRemoveFrom.bind(this) }
 						className="btn btn-sm btn-danger">
 						remove
 					</button>
 				</td>
-				<td>
+				<td className="group-2">
 					<select value={ assignTo } id="assignTo"
 						className="form-control form-control-sm"
 						onChange={ this.onChange.bind(this) }>
@@ -109,13 +109,13 @@ class User extends Component {
 						}
 					</select>
 				</td>
-				<td>
+				<td className="group-2">
 					<button onClick={ this.validateAssignTo.bind(this) }
 						className="btn btn-sm btn-success">
 						assign
 					</button>
 				</td>
-				<td>
+				<td className="delete-group">
 					<button onClick={ this.deleteUser.bind(this) }
 						className="btn btn-sm btn-danger">
 						delete
@@ -174,10 +174,10 @@ class RejectedUser extends Component {
 		} = this.props;
 		return (
 			<tr>
-				<td>{ user_email }</td>
-				<td>{ project_name }</td>
-				<td>{ new Date(resolved_at).toLocaleString() }</td>
-				<td>
+				<td className="info-group">{ user_email }</td>
+				<td className="info-group">{ project_name }</td>
+				<td className="info-group">{ new Date(resolved_at).toLocaleString() }</td>
+				<td className="group-1">
 					<select value={ this.state.group } id="group"
 						className="form-control form-control-sm"
 						onChange={ this.onChange.bind(this) }>
@@ -191,13 +191,13 @@ class RejectedUser extends Component {
             }
 					</select>
 				</td>
-				<td>
+				<td className="group-1">
 					<button onClick={ this.validate.bind(this) }
 						className="btn btn-sm btn-primary">
 						accept
 					</button>
 				</td>
-				<td>
+				<td className="delete-group">
 					<button onClick={ this.deleteUser.bind(this) }
 						className="btn btn-sm btn-danger">
 						delete
@@ -327,6 +327,24 @@ console.log(this.props.createFake)
 						<h3>Unassigned Users</h3>
 		        <TableContainer
 		        	headers={ ["email", "join date", "groups", "remove", "groups", "assign", "delete"] }
+							categories={ [
+								{ name: "Basic Info",
+									className: "info-group",
+									range: [0, 1]
+								},
+								{ name: "Remove from Group",
+									className: "group-1",
+									range: [2, 3]
+								},
+								{ name: "Assign to Group",
+									className: "group-2",
+									range: [4, 5]
+								},
+								{ name: "Delete User",
+									className: "delete-group",
+									range: [6, 6]
+								}
+							] }
 		        	rows={
 		        		unassignedUsers.map(u =>
 			            <User key={ u.email } { ...u }
@@ -344,6 +362,24 @@ console.log(this.props.createFake)
 						<h3>Auth Level Zero Users</h3>
 		        <TableContainer
 		        	headers={ ["email", "join date", "groups", "remove", "groups", "assign", "delete"] }
+							categories={ [
+								{ name: "Basic Info",
+									className: "info-group",
+									range: [0, 1]
+								},
+								{ name: "Remove from Group",
+									className: "group-1",
+									range: [2, 3]
+								},
+								{ name: "Assign to Group",
+									className: "group-2",
+									range: [4, 5]
+								},
+								{ name: "Delete User",
+									className: "delete-group",
+									range: [6, 6]
+								}
+							] }
 		        	rows={
 		        		authLevelZeroUsers.map(u =>
 			            <User key={ u.email } { ...u }
@@ -359,6 +395,24 @@ console.log(this.props.createFake)
 	      <h3>All Users</h3>
         <TableContainer
         	headers={ ["email", "join date", "groups", "remove", "groups", "assign", "delete"] }
+					categories={ [
+						{ name: "Basic Info",
+							className: "info-group",
+							range: [0, 1]
+						},
+						{ name: "Remove from Group",
+							className: "group-1",
+							range: [2, 3]
+						},
+						{ name: "Assign to Group",
+							className: "group-2",
+							range: [4, 5]
+						},
+						{ name: "Delete User",
+							className: "delete-group",
+							range: [6, 6]
+						}
+					] }
         	rows={
         		filteredUsers.map(u =>
 	            <User key={ u.email } { ...u }
@@ -383,6 +437,20 @@ console.log(this.props.createFake)
 		        <h3>Rejected Requests</h3>
 		        <TableContainer
 		        	headers={ ["email", "project", "date", "groups", "accept", "delete"] }
+							categories={ [
+								{ name: "Basic Info",
+									className: "info-group",
+									range: [0, 2]
+								},
+								{ name: "Add to Group",
+									className: "group-1",
+									range: [3, 4]
+								},
+								{ name: "Delete Request",
+									className: "delete-group",
+									range: [5, 5]
+								}
+							] }
 		        	rows={
 		            rejectedRequests
 		              .map(r =>

@@ -1,3 +1,24 @@
+.table th.info-group,
+.table td.info-group {
+  background-color: #fff;
+}
+.table th.group-1,
+.table td.group-1 {
+  background-color: rgba(200, 0, 200, 0.25);
+}
+.table th.group-2,
+.table td.group-2 {
+  background-color: rgba(0, 200, 0, 0.25);
+}
+.table th.group-3,
+.table td.group-3 {
+  background-color: rgba(0, 0, 200, 0.25);
+}
+.table th.delete-group,
+.table td.delete-group {
+  background-color: rgba(200, 0, 0, 0.25);
+}
+
 .table-container-controls::after {
   content: "";
   clear: both;

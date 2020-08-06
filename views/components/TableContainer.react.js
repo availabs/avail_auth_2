@@ -73,12 +73,24 @@ class TableContainer extends Component {
 		this.setState({ page });
 	}
 
+	getColumnClass(col) {
+		return this.props.categories.reduce((a, c) => {
+			const { range: [min, max], className } = c;
+			if ((col >= min) && (col <= max)) {
+				return className;
+			}
+			return a;
+		}, null);
+	}
+
 	render() {
 		const {
 			size,
 			headers,
-			rows
+			rows,
+			categories
 		} = this.props;
+
 		const maxPage = this.getMaxPage(),
     	page = this.getPage(maxPage),
     	slices = this.getSlices(),
@@ -127,12 +139,21 @@ class TableContainer extends Component {
 		        		</th>
 		        	</tr>
 		        }
+						<tr>
+							{ categories.map(cat =>
+									<th className={ cat.className } key={ cat.name }
+										colSpan={ cat.range[1] - cat.range[0] + 1 }>
+										{ cat.name }
+									</th>
+								)
+							}
+						</tr>
 	      		<tr>
 	      			{
 	      				headers.map((h, i) => {
 	      					if (typeof h.onClick === "function") {
 	      						return (
-	      							<th key={ i }>
+	      							<th key={ i } className={ this.getColumnClass(i) }>
 	      								<button onClick={ h.onClick }
 	      									className={ `btn btn-sm btn-${ h.color || 'primary' }` }>
 	      									{ h.label }
@@ -140,7 +161,7 @@ class TableContainer extends Component {
 	      							</th>
 	      						)
 	      					}
-	      					return <th key={ i }>{ h }</th>
+	      					return <th key={ i } className={ this.getColumnClass(i) }>{ h }</th>
 	      				})
 	      			}
 	      		</tr>
@@ -158,6 +179,7 @@ class TableContainer extends Component {
 TableContainer.defaultProps = {
 	size: 5,
 	headers: [],
-	rows: []
+	rows: [],
+	categories: []
 }
 export default TableContainer
