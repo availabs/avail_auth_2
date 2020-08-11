@@ -59,7 +59,7 @@ module.exports = {
 										VALUES ($1, $2);
 									`, [name, userData.email]],
 									[`INSERT INTO groups_in_projects(project_name, group_name, auth_level, created_by)
-										VALUES ($1, 'avail', 10, $2);
+										VALUES ($1, 'AVAIL', 10, $2);
 									`, [name, userData.email]]
 								]
 								return queryAll(sqlAndValues)
@@ -100,5 +100,5 @@ module.exports = {
 				.catch(reject)
 		})
 	}
-	
+
 }
