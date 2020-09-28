@@ -23,7 +23,6 @@ const query = (sql, values=[]) => {
 	return new Promise((resolve, reject) => {
 		pool.query(sql, values, (error, result) => {
 			if (error) {
-console.log("<db_service.query> ERROR:", sql, error)
 				reject(new Error(error.detail || "There was a database error."));
 			}
 			else {
@@ -36,7 +35,7 @@ console.log("<db_service.query> ERROR:", sql, error)
 module.exports = {
 
 	end: () => pool.end(),
-	
+
 	query,
 
 	queryAll: sqlAndValues => {

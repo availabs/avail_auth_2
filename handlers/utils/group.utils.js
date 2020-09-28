@@ -46,29 +46,95 @@ module.exports = {
 				return query(sql, [userData.email]);
 			}),
 
-	create: (token, name, meta) => {
-		return new Promise((resolve, reject) => {
-			verifyAndGetUserData(token)
-				.then(userData => {
-					getUserAuthLevel(userData.email, 'avail_auth')
-						.then(authLevel => {
-							if (authLevel >= 5) {
-								const sql = `
-									INSERT INTO groups(name, meta, created_by)
-									VALUES ($1, $2, $3);
-								`
-								query(sql, [name, meta, userData.email])
-									.then(resolve)
-									.catch(reject);
-							}
-							else {
-								reject(new Error("You do not have the required authority level to create groups."));
-							}
-						})
-				})
-				.catch(reject)
-		})
-	},
+	groupsForProject: (token, project) =>
+		verifyAndGetUserData(token)
+			.then(userData => {
+				const sql = `
+					WITH user_projects AS (
+						SELECT project_name, MAX(auth_level) AS auth_level
+						FROM users_in_groups AS uig
+						INNER JOIN groups_in_projects AS gip
+						ON uig.group_name = gip.group_name
+						WHERE user_email = $1
+						AND gip.project_name = $2
+						GROUP BY 1
+					)
+					SELECT name,
+						meta::TEXT,
+						groups.created_at,
+						groups.created_by,
+						(SELECT COUNT(1) FROM users_in_groups WHERE group_name = name) AS num_members,
+						array_to_json(
+							array(
+								SELECT row_to_json(row(project_name, group_name, auth_level)::project_row)
+								FROM groups_in_projects
+								WHERE group_name = name
+							)
+						) AS projects
+					FROM groups
+					JOIN groups_in_projects AS gip
+					ON gip.group_name = groups.name
+					WHERE gip.project_name = $2
+					AND name NOT IN (
+						SELECT gip.group_name
+						FROM groups_in_projects AS gip
+						WHERE gip.project_name = $2
+						AND gip.auth_level > (
+							SELECT COALESCE(MAX(auth_level), -1)
+							FROM user_projects
+							WHERE user_projects.project_name = gip.project_name
+						)
+					)
+					GROUP BY 1, 2, 3, 4
+				`;
+				return query(sql, [userData.email, project]);
+			}),
+
+	create: (token, name, meta) =>
+		verifyAndGetUserData(token)
+			.then(userData =>
+				getUserAuthLevel(userData.email, 'avail_auth')
+					.then(authLevel => {
+						if (authLevel >= 5) {
+							const sql = `
+								INSERT INTO groups(name, meta, created_by)
+								VALUES ($1, $2, $3);
+							`
+							return query(sql, [name, meta, userData.email]);
+						}
+						else {
+							throw new Error("You do not have the required authority level to create groups.");
+						}
+					})
+			),
+
+	createAndAssign: (token, group_name, meta, project_name, auth_level) =>
+		verifyAndGetUserData(token)
+			.then(userData =>
+				getUserAuthLevel(userData.email, project_name)
+					.then(authLevel => {
+						if (authLevel < 5) {
+							throw new Error("You do not have the required authority level to create groups.");
+						}
+						else if (authLevel < auth_level) {
+							throw new Error(`You do not have the required authority level to create and assign group "${ group_name }" to project "${ project_name }" at authority level "${ auth_level }".`);
+						}
+						else {
+							const sql = `
+								INSERT INTO groups(name, meta, created_by)
+								VALUES ($1, $2, $3);
+							`
+							return query(sql, [group_name, meta, userData.email])
+								.then(() => {
+									const sql = `
+										INSERT INTO groups_in_projects(project_name, group_name, auth_level, created_by)
+										VALUES ($1, $2, $3, $4);
+									`
+									return query(sql, [project_name, group_name, auth_level, userData.email])
+								});
+						}
+					})
+			),
 
 	deleteGroup: (token, group_name) => {
 		return new Promise((resolve, reject) => {
@@ -103,9 +169,9 @@ module.exports = {
 										.then(rows => {
 											if (rows.length === 0) {
 												const sqlAndValues = [
-													[`DELETE FROM groups_in_projects
-														WHERE group_name = $1;
-													`, [group_name]],
+													// [`DELETE FROM groups_in_projects
+													// 	WHERE group_name = $1;
+													// `, [group_name]],
 													[`DELETE FROM users_in_groups
 														WHERE group_name = $1
 													`, [group_name]],

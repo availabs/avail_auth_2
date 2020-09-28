@@ -148,23 +148,20 @@ const getUserData = email => {
 		.then(rows => rows[0]);
 }
 
-const verifyAndGetUserData = token => {
-	return new Promise((resolve, reject) => {
-		verify(token)
-			.then(decoded => {
-				return getUserData(decoded.email)
-					.then(userData => {
-						if (userData && (decoded.password === userData.password)) {
-							resolve(userData);
-						}
-						else {
-							reject(new Error("Could not find user data."));
-						}
-					})
-			})
-			.catch(() => reject(new Error("Token could not be verified.")))
-	})
-}
+const verifyAndGetUserData = token =>
+	verify(token)
+		.then(decoded => {
+			return getUserData(decoded.email)
+				.then(userData => {
+					if (userData && (decoded.password === userData.password)) {
+						return userData;
+					}
+					else {
+						throw new Error("Could not find user data.");
+					}
+				})
+		})
+		.catch(() => { throw new Error("Token could not be verified."); })
 
 const createNewUser = user_email =>	{
 	user_email = user_email.toLowerCase();

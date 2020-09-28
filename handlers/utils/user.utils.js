@@ -119,17 +119,30 @@ module.exports = {
 				return query(sql, [userData.email]);
 			}),
 
-	getUsersByGroup: (token,groups) =>
+	getUsersByGroup: (token, groups) =>
 		verifyAndGetUserData(token)
 			.then(userData => {
 				const sql = `
-					SELECT user_email, uig.group_name, gip.auth_level
-					  FROM users_in_groups uig
-					  JOIN groups_in_projects gip
+					WITH user_projects AS (
+						SELECT project_name, MAX(auth_level) AS auth_level
+						FROM users_in_groups AS uig
+						INNER JOIN groups_in_projects AS gip
+						ON uig.group_name = gip.group_name
+						WHERE user_email = $1
+						GROUP BY 1
+					)
+					SELECT DISTINCT user_email AS email, uig.group_name, gip.auth_level
+					  FROM users_in_groups AS uig
+					  JOIN groups_in_projects AS gip
 					  ON uig.group_name = gip.group_name
-					  where uig.group_name = ANY($1)
+					  WHERE uig.group_name = ANY($2)
+						AND gip.auth_level <= (
+							SELECT COALESCE(MAX(auth_level), -1)
+							FROM user_projects
+							WHERE user_projects.project_name = gip.project_name
+						)
 				`
-				return query(sql, [groups]);
+				return query(sql, [userData.email, groups]);
 			}),
 
 	assignToGroup: (token, user_email, group_name) => {
