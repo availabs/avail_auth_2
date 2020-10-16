@@ -169,9 +169,11 @@ class RejectedUser extends Component {
 			project_name,
 			resolved_at
 		} = this.props.request;
+		
 		const {
 			groups
 		} = this.props;
+
 		return (
 			<tr>
 				<td className="info-group">{ user_email }</td>
@@ -182,9 +184,8 @@ class RejectedUser extends Component {
 						className="form-control form-control-sm"
 						onChange={ this.onChange.bind(this) }>
 						<option value="" hidden>Select a group...</option>
-            {
-              groups
-              	.filter(g => g.projects.reduce((a, c) => a || (c.name === project_name), false))
+            { groups
+              	.filter(g => g.projects.reduce((a, c) => a || (c.project_name === project_name), false))
                 .map(({ name }) =>
                   <option key={ name } value={ name }>{ name }</option>
                 )
@@ -423,14 +424,6 @@ console.log(this.props.createFake)
 	            	remove={ remove }/>
 	          )
 		      }/>
-				{ !user.groups.includes("AVAIL") ? null :
-					<div style={ { marginBottom: "0.5rem" } }>
-						<button className="btn btn-lg btn-primary"
-							onClick={ e => this.createFake() }>
-							<h3 style={ { margin: "0px" } }>Create Fake User</h3>
-						</button>
-					</div>
-				}
 
 				{ !rejectedRequests.length ? null :
 					<>
@@ -463,6 +456,15 @@ console.log(this.props.createFake)
 		              )
 				      }/>
 					</>
+				}
+
+				{ !user.groups.includes("AVAIL") ? null :
+					<div style={ { marginBottom: "0.5rem" } }>
+						<button className="btn btn-lg btn-primary"
+							onClick={ e => this.createFake() }>
+							<h3 style={ { margin: "0px" } }>Create Fake User</h3>
+						</button>
+					</div>
 				}
 
 			</div>

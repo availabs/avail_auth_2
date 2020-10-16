@@ -16,9 +16,7 @@ module.exports = {
 	auth: (req, res) => {
 		const { token, project } = req.body;
 		utils.auth(token, project)
-			.then(user => {
-				res.json({ user })
-			})
+			.then(user => res.json({ user }))
 			.catch(e => res.json({ error: e.message }));
 	},
 
@@ -38,20 +36,22 @@ module.exports = {
 		if (!email || !project) {
 			return res.json({ error: "You must supply an email and project." });
 		}
-		if (Boolean(addToGroup)) {
+		// if (Boolean(addToGroup)) {
 			let projectData = {};
 			if (host && url) {
 				projectData = { HOST: host, URL: url};
 			}
-			utils.addToGroup(email, project, addToGroup, projectData)
-				.then(user => res.json({ user, message: `You should receive an email shortly with login information.` }))
+		// 	utils.addToGroup(email, project, addToGroup, projectData)
+		// 		.then(user => res.json({ user, message: `You should receive an email shortly with login information.` }))
+		// 		.catch(error => res.json({ error: error.message }));
+		// }
+		// else {
+			utils.signupRequest(email, project, addToGroup, projectData)
+				.then(({ user }) =>
+					user ? res.json({ user, message: `Welcome to ${ project }.` }) :
+					res.json({ message: "Your request has been received. You should receive an email shortly." }))
 				.catch(error => res.json({ error: error.message }));
-		}
-		else {
-			utils.signupRequest(email, project)
-				.then(() => res.json({ message: "Your request is pending. You should receive an email shortly." }))
-				.catch(error => res.json({ error: error.message }));
-		}
+		// }
 	},
 	signupAccept: (req, res) => {
 		const {
@@ -74,6 +74,14 @@ module.exports = {
 			.then(() => res.json({ message: `Signup request for ${ user_email } has been accepted.` }))
 			.catch(error => res.json({ error: error.message }));
 	},
+	signupRequestVerified: (req, res) => {
+		const { token, password } = req.body;
+		utils.signupRequestVerified(token, password)
+			.then(user => {
+				res.json({ message: "Your request has been completed.", user });
+			})
+			.catch(error => res.json({ error: error.message }));
+	},
 	signupReject: (req, res) => {
 		const { token, user_email, project_name } = req.body;
 		utils.signupReject(token, user_email, project_name)
@@ -87,11 +95,52 @@ module.exports = {
 			.catch(error => res.json({ error: error.message }));
 	},
 
+	verifyEmail: (req, res) => {
+		const { token } = req.body;
+		utils.verifyEmail(token)
+			.then(message => res.json({ message }))
+			.catch(error => res.json({ error: error.message }));
+	},
+
 	getRequests: (req, res) => {
 		const { token } = req.body;
 		utils.getRequests(token)
 			.then(requests => res.json({ requests }))
 			.catch(e => res.json({ error: e.message }));
+	},
+	getRequestsForProject: (req, res) => {
+		const { token, project_name } = req.body;
+		utils.getRequestsForProject(token, project_name)
+			.then(requests => res.json({ requests }))
+			.catch(e => res.json({ error: e.message }));
+	},
+
+	sendInvite: (req, res) => {
+		const {
+			token,	// the json token of authorizing user
+			group_name, // group to add new user to
+			user_email, // email of new user
+			project_name, // project name that the group has access to
+			host,	// OPTIONAL, should NOT end in /
+						// defaults to host imported from "./host.json"
+			url		// OPTIONAL, should NOT end in /
+						// defaults to "/password/set"
+		} = req.body;
+
+		let projectData = {};
+		if (host && url) {
+			projectData = { HOST: host, URL: url };
+		}
+
+		utils.sendInvite(token, group_name, user_email, project_name, projectData)
+			.then(() => res.json({ message: `Invite to project ${ project_name } as been sent to ${ user_email }.` }))
+			.catch(error => res.json({ error: error.message }));
+	},
+	acceptInvite: (req, res) => {
+		const { token, password } = req.body;
+		utils.acceptInvite(token, password)
+			.then(user => res.json({ message: "Your invite has been completed.", user }))
+			.catch(error => res.json({ error: error.message }));
 	},
 
 	passwordSetView: (req, res) => {
@@ -117,8 +166,13 @@ module.exports = {
 			.catch(error => res.json({ error: error.message }));
 	},
 	passwordReset: (req, res) => {
-		const { email, project_name } = req.body;
-		utils.passwordReset(email, project_name)
+		const { email, project_name, host, url } = req.body;
+
+		let projectData = {};
+		if (host && url) {
+			projectData = { HOST: host, URL: url };
+		}
+		utils.passwordReset(email, project_name, projectData)
 			.then(() => res.json({ message: "Your password has been reset. You should receive an email shortly." }))
 			.catch(error => res.json({ error: error.message }));
 	}

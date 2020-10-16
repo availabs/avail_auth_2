@@ -3,7 +3,9 @@ const bcrypt = require("bcryptjs"),
 
 	{ secret } = require("./secret.json"),
 
-	{ query } = require("./db_service"),
+	db_service = require("./db_service"),
+	{ query, begin } = db_service,
+
 	{ send } = require("./mail_service"),
 
 	{ getProjectData } = require("./getProjectData"),
@@ -15,10 +17,9 @@ const bcrypt = require("bcryptjs"),
 
 const hashSync = password => bcrypt.hashSync(password, 10)
 
-const sign = (email, password) => {
-	email = email.toLowerCase();
-	return new Promise((resolve, reject) => {
-		jwt.sign({ email, password }, secret, { expiresIn: '6h' }, (error, token) => {
+const tokenize = (object, expiresIn = '6h') =>
+	new Promise((resolve, reject) => {
+		jwt.sign(object, secret, { expiresIn }, (error, token) => {
 			if (error) {
 				reject(error);
 			}
@@ -27,12 +28,14 @@ const sign = (email, password) => {
 			}
 		})
 	})
-}
+const sign = (email, password) =>
+	tokenize({ email: email.toLowerCase(), password });
+
 const verify = token => {
 	return new Promise((resolve, reject) => {
 		jwt.verify(token, secret, (error, decoded) => {
 			if (error) {
-				reject(error);
+				reject(new Error("Token could not be verified."));
 			}
 			else {
 				resolve(decoded);
@@ -163,29 +166,17 @@ const verifyAndGetUserData = token =>
 		})
 		.catch(() => { throw new Error("Token could not be verified."); })
 
-const createNewUser = user_email =>	{
+const createNewUser = (user_email, service = db_service) =>	{
 	user_email = user_email.toLowerCase();
-	const sql = `
-		SELECT count(1) AS count
-		FROM public.users
-		WHERE email = $1;
-	`
-	return query(sql, [user_email])
-		.then(rows => +rows[0].count)
-		.then(count => {
-			if (count === 0) {
-				const password = passwordGen(),
-					passwordHash = hashSync(password),
-					sql = `
-						INSERT INTO users(email, password)
-						VALUES ($1, $2)
-						RETURNING *;
-					`
-				return query(sql, [user_email, passwordHash])
-					.then(rows => rows.length ? ({ password, passwordHash, id: rows[0].id }) : ({}))
-			}
-			throw new Error("user email already exists.");
-		})
+	const password = passwordGen(),
+		passwordHash = hashSync(password),
+		sql = `
+			INSERT INTO users(email, password)
+			VALUES ($1, $2)
+			RETURNING *;
+		`
+	return service.query(sql, [user_email, passwordHash])
+		.then(rows => rows.length ? ({ password, passwordHash, id: rows[0].id }) : ({}))
 }
 const sendAcceptEmail = (user_email, password, passwordHash, project_name, HOST, URL) => {
 	user_email = user_email.toLowerCase();
@@ -197,7 +188,9 @@ const sendAcceptEmail = (user_email, password, passwordHash, project_name, HOST,
 				`Your request to project "${ project_name }" has been accepted. Your password is: ${ password }`,
 				htmlTemplate(
 					`Your request to project "${ project_name }" has been accepted.`,
-					`<div>Your new password is:</div><div><h3>${ password }</h3></div><div>Visit ${ HOST } and login with your new password, or click the button below within 6 hours, to set a new password.</div>`,
+					`<div>Your new password is:</div>` +
+						`<div><h3>${ password }</h3></div>` +
+						`<div>Visit <a href="${ HOST }">${ project_name }</a> and login with your new password, or click the button below, within 6 hours, to set a new password.</div>`,
 					`${ HOST }${ URL }/${ token }`,
 					"Click here to set a new password"
 				)
@@ -257,8 +250,12 @@ module.exports = {
 					})
 			),
 
-	signupRequest: (email, project_name) => {
+	signupRequest: (email, project_name, group_name = null, projectData = {}) => {
 		email = email.toLowerCase();
+		const {
+			HOST,
+			URL
+		} = getProjectData(project_name, projectData);
 
 		const sql = `
 			SELECT count(1) AS count
@@ -292,20 +289,106 @@ module.exports = {
 									.then(rows => +rows[0].count)
 									.then(count => {
 										if (count === 0) {
-											const sql = `
-												INSERT INTO signup_requests(user_email, project_name)
-												VALUES ($1, $2);
-											`
-											return query(sql, [email, project_name])
-												.then(() => send(email,
-																			"Invite Request.",
-																			`Your request to project ${ project_name } has been received and is pending.`,
-																			htmlTemplateNoClick(
-																				'Thank you.',
-																				`Your request to project ${ project_name } has been received and is pending.`
+
+											if (group_name) { // START ADD TO GROUP
+												const sql = `
+													SELECT count(1) AS count
+													FROM groups_in_projects
+													WHERE group_name = $1
+													AND project_name = $2
+													AND group_name NOT IN (
+														SELECT DISTINCT group_name
+														FROM groups_in_projects
+														WHERE auth_level > 0
+													)
+												`
+												return query(sql, [group_name, project_name])
+													.then(rows => +rows[0].count)
+													.then(count => {
+														if (count === 1) {
+
+															const sql = `
+																SELECT *
+																FROM users
+																WHERE email = $1
+															`
+															return query(sql, [email])
+																.then(rows => rows.pop())
+																.then(user => {
+																	if (user) {
+																		const sql = `
+																			INSERT INTO users_in_groups(user_email, group_name, created_by)
+																			VALUES($1, $2, 'signup-verified')
+																		`
+																		return query(sql, [email, group_name])
+																			.then(() =>
+																				getUser(email, user.password, project_name, user.id)
+																					.then(user => ({ user }))
 																			)
-																		)
-												);
+																	}
+																	else {
+																		const sql = `
+																			DELETE FROM signup_requests
+																			WHERE user_email = $1
+																			AND project_name = $2
+																			AND state = 'awaiting';
+																		`
+																		return query(sql, [email, project_name])
+																			.then(() => {
+																				const sql = `
+																					INSERT INTO signup_requests(user_email, project_name, state)
+																					VALUES ($1, $2, 'awaiting');
+																				`
+																				return query(sql, [email, project_name])
+																					.then(() =>
+																						tokenize({ group: group_name, project: project_name, email, from: "signup-request-addToGroup" }, '24h')
+																							.then(token => {
+																								const url = `${ HOST }${ URL }/${ token }`
+																								return send(
+																									email,
+																									"Signup Request Received.",
+																									`Your request to project ${ project_name } has been received. Visit ${ url } to create a password and complete your request.`,
+																									htmlTemplate(
+																										`Your request to project ${ project_name } has been received.`,
+																										`<div>Visit <a href="${ url }">this link</a>, within 24 hours, to create a password and complete your request.</div>`,
+																										url,
+																										"Click here to complete request"
+																									)
+																								)
+																							})
+																					);
+																			})
+																	}
+																})
+														}
+														else {
+															throw new Error(`The requested group does not have auth level 0 across all projects.`);
+														}
+													})
+											} // END ADD TO GROUP
+											else {
+												const sql = `
+													INSERT INTO signup_requests(user_email, project_name, state)
+													VALUES ($1, $2, 'awaiting');
+												`
+												return query(sql, [email, project_name])
+													.then(() =>
+														tokenize({ project: project_name, email, from: "signup-request" }, '24h')
+															.then(token => {
+																const url = `${ HOST }${ URL }/${ token }`;
+																return send(email,
+																	"Invite Request.",
+																	`Your request to project ${ project_name } has been received and is pending. Visit ${ url } to verify email.`,
+																	htmlTemplate(
+																		`Your request to project ${ project_name } has been received and is awaiting email verification.`,
+																		`<div>Visit <a href="${ url }">this link</a>, within 24 hours, to verify your email.</div>`,
+																		url,
+																		"Click here to verify email"
+																	)
+																)
+															})
+													);
+											}
 										}
 										else {
 											throw new Error(`You already have a pending request for this project.`)
@@ -323,65 +406,56 @@ module.exports = {
 			})
 	},
 
-	addToGroup: (user_email, project_name, group_name, projectData) => {
-		user_email = user_email.toLowerCase();
-		const {
-			HOST,
-			URL
-		} = getProjectData(project_name, projectData);
-// console.log("<auth.utils.addToGroup>", project_name, projectData, HOST, URL)
-
-		const sql = `
-			SELECT count(1) AS count
-			FROM groups_in_projects
-			WHERE group_name = $1
-			AND group_name NOT IN (
-				SELECT group_name
-				FROM groups_in_projects
-				WHERE auth_level > 1
-			)
-		`
-		return query(sql, [group_name])
-			.then(row => +row[0].count)
-			.then(count => {
-				if (count === 1) {
-					const  sql = `
-						SELECT count(1) AS count
-						FROM users_in_groups AS uig
-						INNER JOIN groups_in_projects AS gip
-						ON uig.group_name = gip.group_name
-						WHERE user_email = $1
-						AND project_name = $2;
-					`;
-					return query(sql, [user_email, project_name])
-						.then(rows => +rows[0].count)
-						.then(count => {
-							if (count === 0) {
-								const sql = `
-									INSERT INTO users_in_groups(user_email, group_name, created_by)
-									VALUES ($1, $2, $3);
-								`;
-								return query(sql, [user_email, group_name, 'auto-accept'])
-									.then(() => {
-										return createNewUser(user_email)
-											.then(({ password, passwordHash, id }) => {
-												if (password && passwordHash) {
-													return sendAcceptEmail(user_email, password, passwordHash, project_name, HOST, URL)
-														.then(() => getUser(user_email, passwordHash, project_name, id));
-												}
-											})
-									})
-							}
-							else {
-								throw new Error("You already have access to this project.")
-							}
-					})
+	verifyEmail: token =>
+		verify(token)
+			.then(({ project, from, email }) => {
+				if (next !== "signup-request") {
+					throw new Error("Invalid request.");
 				}
 				else {
-					throw new Error("Count not add you to group.")
+					const sql = `
+						SELECT COUNT(1) AS COUNT
+						FROM signup_requests
+						WHERE user_email = $1
+						AND project_name = $2
+						AND state = 'awaiting'
+					`
+					return query(sql, [email, project])
+						.then(rows => +rows[0].count)
+						.then(count => {
+							if (count === 1) {
+								const sql = `
+									UPDATE signup_requests
+									SET state = 'pending'
+									WHERE user_email = $1
+									AND project_name = $2
+									AND state = 'awaiting'
+								`
+								return query(sql, [email, project])
+									.then(() => "Your email has been verified and your request is pending.");
+							}
+							else {
+								const sql = `
+									SELECT COUNT(1) AS COUNT
+									FROM signup_requests
+									WHERE user_email = $1
+									AND project_name = $2
+									AND state = 'pending'
+								`
+								return query(sql, [email, project])
+									.then(rows => +rows[0].count)
+									.then(count => {
+										if (count === 1) {
+											return "Your email has already been verified and your request is pending.";
+										}
+										else {
+											throw new Error("Could not find request.");
+										}
+									})
+							}
+						})
 				}
-			})
-	},
+			}),
 
 	signupAccept: (token, group_name, user_email, project_name, projectData = {}) => {
 		user_email = user_email.toLowerCase();
@@ -393,57 +467,166 @@ module.exports = {
 // console.log("<auth.utils.signupAccept>", project_name, projectData, HOST, URL)
 
 		return verifyAndGetUserData(token)
-				.then(userData => {
-					return getUserAuthLevel(userData.email, project_name)
-						.then(authLevel => {
-							const sql = `
-								SELECT auth_level
-								FROM groups_in_projects
-								WHERE group_name = $1
-								AND project_name = $2;
-							`
-							return query(sql, [group_name, project_name])
-								.then(rows => rows.length ? rows[0].auth_level : 0)
-								.then(groupAuthLevel => {
-									if (authLevel >= groupAuthLevel) {
-										let sql = `
-												INSERT INTO users_in_groups(user_email, group_name, created_by)
-												VALUES ($1, $2, $3);
-											`,
-											args = [user_email, group_name, userData.email];
+			.then(userData => {
+				return getUserAuthLevel(userData.email, project_name)
+					.then(authLevel => {
+						const sql = `
+							SELECT auth_level
+							FROM groups_in_projects
+							WHERE group_name = $1
+							AND project_name = $2;
+						`
+						return query(sql, [group_name, project_name])
+							.then(rows => rows.length ? rows[0].auth_level : 0)
+							.then(groupAuthLevel => {
+								if ((authLevel >= 5) && (authLevel >= groupAuthLevel)) {
+									const sql = `
+										SELECT COUNT(1) AS count
+										FROM signup_requests
+										WHERE (state = 'pending' OR state = 'rejected')
+										AND user_email = $1
+										AND project_name = $2;
+									`
+									return query(sql, [user_email, project_name])
+										.then(rows => +rows[0].count)
+										.then(count => {
+											if (count === 1) {
+												return begin(client => {
+													const sql = `
+														UPDATE signup_requests
+														SET state = 'accepted',
+															resolved_at = now(),
+															resolved_by = $1
+														WHERE user_email = $2
+														AND project_name = $3;
+													`;
+													return client.query(sql, [userData.email, user_email, project_name])
+														.then(() => {
+															const sql = `
+																SELECT COUNT(1) AS count
+																FROM users
+																WHERE email = $1
+															`
+															return query(sql, [user_email])
+																.then(rows => +rows[0].count)
+																.then(count => {
+																	if (count) {
+																		const sql = `
+																			INSERT INTO users_in_groups(user_email, group_name, created_by)
+																			VALUES ($1, $2, $3);
+																		`;
+																		return query(sql, [user_email, group_name, userData.email])
+																			.then(() => send(
+																				user_email,
+																				"Invite Request.",
+																				`Your request to project ${ project_name } has been accepted.`,
+																				htmlTemplateNoClick(
+																					'Invite Request.',
+																					`Your request to project ${ project_name } has been accepted.`
+																				)
+																			))
+																	}
+																	else {
+																		return createNewUser(user_email, client)
+																			.then(({ password, passwordHash }) => {
 
-										return query(sql, args)
-											.then(() => {
-												return createNewUser(user_email)
-													.then(({ password, passwordHash, id }) => {
+																				const sql = `
+																					INSERT INTO users_in_groups(user_email, group_name, created_by)
+																					VALUES ($1, $2, $3);
+																				`;
+																				return client.query(sql, [user_email, group_name, userData.email])
+																					.then(() =>
+																						sendAcceptEmail(user_email, password, passwordHash, project_name, HOST, URL)
+																					)
+																			})
+																	}
+																})
+														})
+												}) // END begin
 
-														let promise = null;
-														if (password && passwordHash) {
-															promise = sendAcceptEmail(user_email, password, passwordHash, project_name, HOST, URL);
-														}
-														return Promise.resolve(promise)
-															.then(() => {
-																const sql = `
-																	UPDATE signup_requests
-																	SET state = 'accepted',
-																		resolved_at = now(),
-																		resolved_by = $1
-																	WHERE user_email = $2
-																	AND project_name = $3;
-																`;
-																return query(sql, [userData.email, user_email, project_name])
-															})
-													})
-												})
-									}
-									else {
-										throw new Error(`You do not have authority to assign users to group ${ group_name }.`)
-									}
-								})
-						})
-				})
+											}
+											else {
+												throw new Error(`Could not find request.`);
+											}
+										})
+								}
+								else {
+									throw new Error(`You do not have authority to assign users to group ${ group_name }.`);
+								}
+							})
+					})
+			})
 
 	},
+	signupRequestVerified: (token, password) =>
+		verify(token)
+			.then(({ project, group, email, from }) => {
+				if (from !== "signup-request-addToGroup") {
+					throw new Error("Invalid request.");
+				}
+				email = email.toLowerCase();
+				const sql = `
+					SELECT count(1) AS count
+					FROM groups_in_projects
+					WHERE group_name = $1
+					AND project_name = $2
+					AND group_name NOT IN (
+						SELECT DISTINCT group_name
+						FROM groups_in_projects
+						WHERE auth_level > 0
+					)
+				`
+				return query(sql, [group, project])
+					.then(rows => +rows[0].count)
+					.then(count => {
+						if (count === 1) {
+							const sql = `
+								SELECT COUNT(1) AS count
+								FROM signup_requests
+								WHERE state = 'awaiting'
+								AND user_email = $1
+								AND project_name = $2;
+							`
+							return query(sql, [email, project])
+								.then(rows => +rows[0].count)
+								.then(count => {
+									if (count === 1) {
+										return begin(client => {
+											const sql = `
+												UPDATE signup_requests
+												SET state = 'accepted',
+													resolved_at = now(),
+													resolved_by = 'signup-verified'
+												WHERE user_email = $1
+												AND project_name = $2;
+											`;
+											return client.query(sql, [email, project])
+												.then(() => {
+													const passwordHash = hashSync(password),
+														sql = `
+															INSERT INTO users(email, password)
+															VALUES ($1, $2)
+															RETURNING *;
+														`
+													return client.query(sql, [email, passwordHash])
+														.then(user => {
+															const sql = `
+																INSERT INTO users_in_groups(user_email, group_name, created_by)
+																VALUES ($1, $2, 'signup-verified');
+															`;
+															return client.query(sql, [email, group])
+																.then(() => getUser(email, passwordHash, project, user.id))
+														})
+												})
+										})
+									}
+									throw new Error("Could not find request");
+								})
+						}
+						throw new Error(`You cannot be added to group ${ group }.`);
+					})
+			}),
+
 	signupReject: (token, user_email, project_name) => {
 		user_email = user_email.toLowerCase();
 
@@ -452,7 +635,7 @@ module.exports = {
 				.then(userData => {
 					return getUserAuthLevel(userData.email, project_name)
 						.then(authLevel => {
-							if (authLevel > 0) {
+							if (authLevel >= 5) {
 								const sql = `
 										UPDATE signup_requests
 										SET state = 'rejected',
@@ -492,14 +675,31 @@ module.exports = {
 				.then(userData => {
 					return getUserAuthLevel(userData.email, project_name)
 						.then(authLevel => {
-							if (authLevel > 0) {
+							if (authLevel >= 5) {
 								const sql = `
-									DELETE FROM signup_requests
+									SELECT COUNT(1) AS count
+									FROM signup_requests
 									WHERE user_email = $1
-									AND project_name = $2;
+									AND project_name = $2
+									AND state = 'rejected';
 								`
 								return query(sql, [user_email, project_name])
-									.then(() => resolve(`Request deleted.`))
+									.then(rows => +rows[0].count)
+									.then(count => {
+										if (count) {
+											const sql = `
+												DELETE FROM signup_requests
+												WHERE user_email = $1
+												AND project_name = $2
+												AND state = 'rejected';
+											`
+											return query(sql, [user_email, project_name])
+												.then(() => resolve(`Request deleted.`));
+										}
+										else {
+											throw new Error("You may only delete rejected requests.")
+										}
+									})
 							}
 							else {
 								throw new Error(`You do not have the authority to delete requests for project ${ project_name }.`)
@@ -510,6 +710,124 @@ module.exports = {
 		})
 	},
 
+	sendInvite: (token, group_name, user_email, project_name, projectData) =>
+		verifyAndGetUserData(token)
+			.then(userData =>
+				getUserAuthLevel(userData.email, project_name)
+					.then(authLevel => {
+						if (authLevel < 5) {
+							throw new Error(`You do not have the authority to invite user to project ${ project_name }.`);
+						}
+						user_email = user_email.toLowerCase();
+
+						const sql = `
+							SELECT COUNT(1) AS count
+							FROM users
+							WHERE email = $1
+						`
+						return query(sql, [user_email])
+							.then(rows => +rows[0].count)
+							.then(count => {
+								if (count) {
+									throw new Error(`User ${ user_email } already exists.`);
+								}
+
+								const sql = `
+									SELECT count(1) AS count
+									FROM signup_requests
+									WHERE user_email = $1
+									AND project_name = $2;
+								`
+								return query(sql, [user_email, project_name])
+									.then(rows => +rows[0].count)
+									.then(count => {
+										if (count) {
+											throw new Error(`User ${ user_email } has already been invited to project ${ project_name }.`);
+										}
+										const sql = `
+											INSERT INTO signup_requests(user_email, project_name, state)
+											VALUES ($1, $2, 'awaiting');
+										`
+										return query(sql, [user_email, project_name])
+											.then(() =>
+												tokenize({ group: group_name, project: project_name, email: user_email, invited_by: userData.email, from: "invite-request" }, '24h')
+													.then(token => {
+														const {
+															HOST,
+															URL
+														} = getProjectData(project_name, projectData);
+
+														const url = `${ HOST }${ URL }/${ token }`
+														return send(
+															user_email,
+															`Invite to project ${ project_name }.`,
+															`You've been invited to project ${ project_name }. Visit ${ url } to create a password and complete your invite.`,
+															htmlTemplate(
+																`You've been invited to project ${ project_name }.`,
+																`<div>Visit <a href="${ url }">this link</a>, within 24 hours, to create a password and accept your invite.</div>`,
+																url,
+																"Click here to accept invite"
+															)
+														)
+													})
+											);
+									})
+
+							})
+
+					})
+			),
+	acceptInvite: (token, password) =>
+		verify(token)
+			.then(({ project, group, email, from, invited_by }) => {
+				if (from !== "invite-request") {
+					throw new Error("Invalid request.");
+				}
+				const sql = `
+					SELECT COUNT(1) AS count
+					FROM signup_requests
+					WHERE state = 'awaiting'
+					AND user_email = $1
+					AND project_name = $2;
+				`
+				return query(sql, [email, project])
+					.then(rows => +rows[0].count)
+					.then(count => {
+						if (count === 1) {
+							return begin(client => {
+								const passwordHash = hashSync(password),
+									sql = `
+										INSERT INTO users(email, password)
+										VALUES ($1, $2)
+										RETURNING *;
+									`
+								return client.query(sql, [email, passwordHash])
+									.then(rows => rows.pop())
+									.then(user => {
+										const sql = `
+											INSERT INTO users_in_groups(user_email, group_name, created_by)
+											VALUES ($1, $2, $3);
+										`;
+										return client.query(sql, [email, group, invited_by])
+											.then(() => {
+												const sql = `
+													UPDATE signup_requests
+													SET state = 'accepted',
+														resolved_at = now(),
+														resolved_by = $1
+													WHERE user_email = $2
+													AND project_name = $3;
+												`
+												return client.query(sql, [invited_by, email, project])
+													.then(() => getUser(email, passwordHash, project, user.id))
+											})
+									})
+							})
+						}
+						throw new Error(`Could not find awaiting request.`);
+					})
+			}),
+
 	getRequests: token => {
 		return new Promise((resolve, reject) => {
 			verifyAndGetUserData(token)
@@ -519,8 +837,11 @@ module.exports = {
 						FROM signup_requests
 						WHERE project_name IN (
 							SELECT project_name
-							FROM users_in_groups AS uig INNER JOIN groups_in_projects AS gip ON uig.group_name = gip.group_name
+							FROM users_in_groups AS uig
+								INNER JOIN groups_in_projects AS gip
+								ON uig.group_name = gip.group_name
 							WHERE user_email = $1
+							AND gip.auth_level >= 5
 						)
 					`
 					query(sql, [userData.email])
@@ -530,6 +851,25 @@ module.exports = {
 				.catch(reject)
 		})
 	},
+	getRequestsForProject: (token, project_name) =>
+		verifyAndGetUserData(token)
+			.then(userData => {
+				const sql = `
+					SELECT *
+					FROM signup_requests
+					WHERE project_name IN (
+						SELECT project_name
+						FROM users_in_groups AS uig
+							INNER JOIN groups_in_projects AS gip
+							ON uig.group_name = gip.group_name
+						WHERE uig.user_email = $1
+						AND gip.auth_level >= 5
+						AND project_name = $2
+					)
+					AND state != 'accepted'
+				`
+				return query(sql, [userData.email, project_name])
+			}),
 
 	passwordSet: (token, password) => {
 		return verifyAndGetUserData(token)
@@ -567,12 +907,12 @@ module.exports = {
 				.catch(reject)
 		})
 	},
-	passwordReset: (email, project_name = "avail_auth") => {
+	passwordReset: (email, project_name, projectData) => {
 		email = email.toLowerCase();
 		const {
 			HOST,
 			URL
-		} = getProjectData(project_name);
+		} = getProjectData(project_name, projectData);
 
 		return getUserData(email)
 			.then(userData => {
