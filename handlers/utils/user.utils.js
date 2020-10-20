@@ -179,7 +179,7 @@ module.exports = {
 											INSERT INTO users_in_groups(user_email, group_name, created_by)
 											VALUES ($1, $2, $3);
 										`
-										query(sql, [user_email, group_name, userData.email])
+										return query(sql, [user_email, group_name, userData.email])
 											.then(() => resolve(`Assigned user ${ user_email } to group ${ group_name }.`))
 									}
 									else {
@@ -226,7 +226,7 @@ module.exports = {
 											WHERE user_email = $1
 											AND group_name = $2;
 										`
-										query(sql, [user_email, group_name])
+										return query(sql, [user_email, group_name])
 											.then(() => resolve(`Removed user ${ user_email } from group ${ group_name }.`))
 									}
 									else {

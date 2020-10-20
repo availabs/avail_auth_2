@@ -119,6 +119,9 @@ module.exports = {
 						else if (authLevel < auth_level) {
 							throw new Error(`You do not have the required authority level to create and assign group "${ group_name }" to project "${ project_name }" at authority level "${ auth_level }".`);
 						}
+						else if ((auth_level < 0) || (auth_level > 10)) {
+							throw new Error("Authority Level must be in the range 0 to 10 inclusive.");
+						}
 						else {
 							const sql = `
 								INSERT INTO groups(name, meta, created_by)
@@ -154,7 +157,8 @@ module.exports = {
 									DELETE FROM groups_in_projects
 									WHERE	group_name = $1
 									AND project_name = $2
-									AND auth_level <= $3;
+									AND auth_level <= $3
+									AND auth_level >= 5;
 								`
 								return query(sql, [group_name, project_name, auth_level])
 							})
@@ -202,7 +206,10 @@ module.exports = {
 				.then(userData => {
 					return getUserAuthLevel(userData.email, project_name)
 						.then(userAuthLevel => {
-							if (userAuthLevel >= auth_level) {
+							if ((auth_level < 0) || (auth_level > 10)) {
+								throw new Error("Authority Level must be in the range 0 to 10 inclusive.");
+							}
+							else if ((userAuthLevel >= 5) && (userAuthLevel >= auth_level)) {
 								const sql = `
 									INSERT INTO groups_in_projects(project_name, group_name, auth_level, created_by)
 									VALUES ($1, $2, $3, $4);
@@ -241,7 +248,7 @@ module.exports = {
 									}
 								})
 								.then(groupAuthLevel => {
-									if (userAuthLevel >= groupAuthLevel) {
+									if ((userAuthLevel >= 5 ) && (userAuthLevel >= groupAuthLevel)) {
 										const sql = `
 											DELETE FROM groups_in_projects
 											WHERE group_name = $1
@@ -267,7 +274,10 @@ module.exports = {
 				.then(userData => {
 					return getUserAuthLevel(userData.email, project_name)
 						.then(userAuthLevel => {
-							if (userAuthLevel >= auth_level) {
+							if ((auth_level < 0) || (auth_level > 10)) {
+								throw new Error("Authority Level must be in the range 0 to 10 inclusive.");
+							}
+							else if ((userAuthLevel >= 5) && (userAuthLevel >= auth_level)) {
 								const sql = `
 									UPDATE groups_in_projects
 									SET auth_level = $1,
