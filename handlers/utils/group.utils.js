@@ -148,7 +148,8 @@ module.exports = {
 						FROM users_in_groups AS uig
 						INNER JOIN groups_in_projects AS gip
 						ON uig.group_name = gip.group_name
-						WHERE user_email = $1;
+						WHERE user_email = $1
+						AND gip.auth_level >= 5;
 					`
 					query(sql, [userData.email])
 						.then(rows => {
@@ -157,8 +158,7 @@ module.exports = {
 									DELETE FROM groups_in_projects
 									WHERE	group_name = $1
 									AND project_name = $2
-									AND auth_level <= $3
-									AND auth_level >= 5;
+									AND auth_level <= $3;
 								`
 								return query(sql, [group_name, project_name, auth_level])
 							})
