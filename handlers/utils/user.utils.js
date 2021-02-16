@@ -86,22 +86,22 @@ module.exports = {
 					WHERE user_email = $1
 					GROUP BY 1
 				)
-				SELECT email,
-				users.created_at,
-				array_to_json(
-					array(
-						SELECT row_to_json(row(project_name, gip.group_name, auth_level)::project_row)
-						FROM users_in_groups AS uig INNER JOIN groups_in_projects AS gip ON uig.group_name = gip.group_name
-						WHERE user_email = email
-					)
-				) AS projects,
-				array_to_json(
-					array(
-						SELECT DISTINCT group_name
-						FROM users_in_groups
-						WHERE user_email = email
-					)
-				) AS groups
+				SELECT email, users.id,
+					users.created_at,
+					array_to_json(
+						array(
+							SELECT row_to_json(row(project_name, gip.group_name, auth_level)::project_row)
+							FROM users_in_groups AS uig INNER JOIN groups_in_projects AS gip ON uig.group_name = gip.group_name
+							WHERE user_email = email
+						)
+					) AS projects,
+					array_to_json(
+						array(
+							SELECT DISTINCT group_name
+							FROM users_in_groups
+							WHERE user_email = email
+						)
+					) AS groups
 				FROM users
 				WHERE email NOT IN (
 					SELECT DISTINCT user_email
