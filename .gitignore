@@ -1,8 +1,8 @@
 node_modules
-static/*
+static/js/*
 docker/*
 
 *.env
-*.json
+handlers/utils/*.json
 
 paper_key.txt

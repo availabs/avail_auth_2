@@ -32,12 +32,14 @@ const ComposeMessage = ({
 												heading,
 												message,
 												type,
+                        project,
 												target,
 												users,
 												groups,
 												projects,
-												onChange
-											}) =>
+												onChange,
+                        filterGroup
+											}) => (
 	<div>
 		<div className="row">
 			<div className="col-6">
@@ -79,29 +81,81 @@ const ComposeMessage = ({
 					<option value="project">project</option>
 					<option value="all">all</option>
 				</select>
+
+        { !["user", "group"].includes(type) ? null :
+          <div style={ { marginTop: "5px" } }>
+            <h3>Project</h3>
+            <select onChange={ onChange }
+              className="form-control form-control-sm"
+              value={ project } id="project">
+              <option value="" hidden>select a project...</option>
+              {
+                projects.sort((a, b) => a.name < b.name ? -1 : 1)
+                  .map((u, i) =>
+                    <option key={ u.name } value={ u.name }>{ u.name }</option>
+                  )
+              }
+            </select>
+          </div>
+        }
+
+        { type !== "user" || !project ? null :
+          <div style={ { marginTop: "5px" } }>
+            <h3>Group</h3>
+            <select onChange={ onChange }
+              className="form-control form-control-sm"
+              value={ project } id="filterGroup">
+              <option value="" hidden>select a group...</option>
+              {
+                groups.filter(({ projects }) => {
+                    return projects.reduce((a, c) => {
+                      return a || c.project_name === project;
+                    }, false);
+                  })
+                  .sort((a, b) => a.name < b.name ? -1 : 1)
+                  .map((u, i) =>
+                    <option key={ u.name } value={ u.name }>{ u.name }</option>
+                  )
+              }
+            </select>
+          </div>
+        }
 			</div>
 			{ type === "all" ? null :
 				<div className="col-6">
 					<h3>Message Target</h3>
-					{ type === "user" ?
+					{ type === "user" && project ?
 							<select onChange={ onChange }
 								className="form-control form-control-sm"
 								value={ target } id="target">
 								<option value="" hidden>select a user...</option>
 								{
-									users.sort((a, b) => a.email < b.email ? -1 : 1)
+									users.filter(({ projects }) => {
+                      return projects.reduce((a, c) => {
+                        return a || c.project_name === project;
+                      }, false);
+                    })
+                    .filter(({ groups }) => {
+                      return !filterGroup || groups.includes(filterGroup);
+                    })
+                    .sort((a, b) => a.email < b.email ? -1 : 1)
 										.map((u, i) =>
 											<option key={ u.email } value={ u.email }>{ u.email }</option>
 										)
 								}
 							</select> :
-						type === "group" ?
+						type === "group" && project ?
 							<select onChange={ onChange }
 								className="form-control form-control-sm"
 								value={ target } id="target">
 								<option value="" hidden>select a group...</option>
 								{
-									groups.sort((a, b) => a.name < b.name ? -1 : 1)
+									groups.filter(({ projects }) => {
+                      return projects.reduce((a, c) => {
+                        return a || c.project_name === project;
+                      }, false);
+                    })
+                    .sort((a, b) => a.name < b.name ? -1 : 1)
 										.map((u, i) =>
 											<option key={ u.name } value={ u.name }>{ u.name }</option>
 										)
@@ -126,6 +180,7 @@ const ComposeMessage = ({
 		</div>
 
 	</div>
+)
 
 class Message extends Component {
 	delete(e) {
@@ -143,8 +198,8 @@ class Message extends Component {
 		const {
 			message,
 			heading,
-			created_at,
-			created_by,
+			sent_at,
+			sent_by,
 			viewed,
 			opened,
 			toggle
@@ -154,9 +209,9 @@ class Message extends Component {
 				<td>
 					<div className={ `message${ viewed ? ' viewed' : '' }` }>
 						<div>
-							<span style={ { paddingRight: "20px" } }>{ created_by }</span>
+							<span style={ { paddingRight: "20px" } }>{ sent_by }</span>
 							<span style={ { paddingRight: "20px" } }><b>{ heading }</b></span>
-							<span>{ new Date(created_at).toLocaleString() }</span>
+							<span>{ new Date(sent_at).toLocaleString() }</span>
 						</div>
 						{ !opened ? null :
 							<div style={ { paddingTop: "8px" } }>
@@ -182,10 +237,16 @@ class Home extends Component {
 		super(props);
 		this.state = {
 			overlay: "hide",
+
 			heading: "",
 			message: "",
+
 			type: "",
+      project: "",
 			target: "",
+
+      filterGroup: "",
+
 			openMessage: -1
 		}
 	}
@@ -221,37 +282,43 @@ class Home extends Component {
 			heading,
 			message,
 			type,
+      project,
 			target
 		} = this.state;
 		const errors = [];
 		if (!heading) {
-			errors.push("Missing required parameter: heading.")
+			errors.push("Missing required parameter: heading.");
 		}
 		if (!message) {
-			errors.push("Missing required parameter: message.")
+			errors.push("Missing required parameter: message.");
 		}
 		if (!type) {
-			errors.push("Missing required parameter: type.")
+			errors.push("Missing required parameter: type.");
+		}
+		if ((type !== "all") && !project) {
+			errors.push("Missing required parameter: project.");
 		}
 		if ((type !== "all") && !target) {
-			errors.push("Missing required parameter: target.")
+			errors.push("Missing required parameter: target.");
 		}
 		errors.forEach(e => this.props.message(e));
 		if (!errors.length) {
-			this.props.postMessage(heading, message, type, target);
-			this.setState({ heading: "", message: "", type: "", target: "" });
+			this.props.postMessage(heading, message, type, target, project);
+			this.setState({ heading: "", message: "", type: "", project: "", target: "", filterGroup: "" });
 		}
 	}
   render() {
   	const {
   		openMessage
-  	} = this.state
+  	} = this.state;
+
   	const {
   		messages,
   		users,
   		groups,
   		projects
   	} = this.props;
+
     return (
       <div className='container'>
         <div style={ { position: "relative" } }>
@@ -265,7 +332,7 @@ class Home extends Component {
         <TableContainer
         	rows={
         		messages
-        			.sort((a, b) => new Date(b.created_at).valueOf() - new Date(a.created_at).valueOf())
+        			.sort((a, b) => new Date(b.sent_at).valueOf() - new Date(a.sent_at).valueOf())
         			.map((m, i) =>
         				<Message key={ m.id } { ...m }
         					view={ this.props.viewMessages }

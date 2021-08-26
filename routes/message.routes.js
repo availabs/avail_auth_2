@@ -2,26 +2,22 @@ const MessageHandlers = require("../handlers/message.handlers")
 
 module.exports = [
 
-	{
-		route: "/messages",
+	{ route: "/messages",
 		method: "post",
 		handler: MessageHandlers.get
 	},
 
-	{
-		route: "/message/post",
+	{ route: "/messages/post",
 		method: "post",
 		handler: MessageHandlers.post
 	},
 
-	{
-		route: "/message/view",
+	{ route: "/messages/view",
 		method: "post",
 		handler: MessageHandlers.view
 	},
 
-	{
-		route: "/message/delete",
+	{ route: "/messages/delete",
 		method: "post",
 		handler: MessageHandlers.delete
 	}

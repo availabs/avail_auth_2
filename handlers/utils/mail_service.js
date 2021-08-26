@@ -17,7 +17,6 @@ module.exports = {
 		}
 		return new Promise((resolve, reject) => {
 			smtpTransport.sendMail(mailOptions, (error, response) => {
-console.log("MAILGUNNED?", error, response)
 				if (error) {
 					reject(error);
 				}

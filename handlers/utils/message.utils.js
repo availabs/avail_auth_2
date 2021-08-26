@@ -1,205 +1,231 @@
-const { query, queryAll } = require("./db_service"),
-	{
-		verifyAndGetUserData,
-		getUserAuthLevel
-	} = require("./auth.utils");
+const get = require("lodash.get")
 
-const sendMessageToUser = (userData, heading, message, target) => {
-	const sql = `
-		SELECT count(1) AS count
+const { query, queryAll } = require("./db_service");
+const {
+	verifyAndGetUserData,
+	getUserAuthLevel
+} = require("./auth.utils");
+
+const slacker = require("./slacker")
+
+const DefaultUserPreferences = {
+	receiveEmail: false,
+	receiveSlack: false,
+	// slackUserId: <-- required if receiveSlack === true
+}
+
+const sendMessageToUser = async (senderData, heading, message, send_to, project) => {
+
+	let sql = `
+		SELECT email
 		FROM users
-		WHERE email = $1
-		AND email != $2;
+		WHERE email = $1;
 	`
-	return query(sql, [target, userData.email])
-		.then(rows => rows[0].count)
-		.then(count => {
-			if (count === 0) {
-				throw new Error(`User ${ target } was not found.`);
-			}
-			else {
-				const sql = `
-					INSERT INTO messages(heading, message, user_email, created_by)
-					VALUES ($1, $2, $3, $4);
-				`
-				return query(sql, [heading, message, target, userData.email])
-					.then(() => `Sent message to user ${ target }.`)
-			}
-		})
+	if (!isNaN(send_to)) {
+		sql = `
+			SELECT email
+			FROM users
+			WHERE id = $1;
+		`
+	}
+	const rows = await query(sql, [send_to]);
+
+	if (!rows.length) {
+		throw new Error(`User "${ send_to }" was not found.`);
+	}
+
+	const [{ email }] = rows;
+
+console.log("SENDIG MESSAGE TO:", email)
+
+	sql = `
+		SELECT preferences
+		FROM user_preferences
+		WHERE user_email = $1
+		AND project_name = $2;
+	`
+	const [row] = await query(sql, [email, project]);
+
+	const preferences = get(row, "preferences", {});
+
+	const {
+		receiveEmail,
+		receiveSlack,
+		slackUserId
+	} = { ...DefaultUserPreferences, ...preferences };
+
+	if (receiveSlack && slackUserId) {
+		await slacker(slackUserId, message);
+	}
+
+	sql = `
+		INSERT INTO messages_new(heading, message, sent_by, sent_to, project_name)
+		VALUES ($1, $2, $3, $4, $5);
+	`
+	await query(sql, [heading, message, senderData.email, email, project || null]);
+
+	return 'Message sent.'
 }
 
-const sendMessageToGroup = (userData, heading, message, target) => {
-	const sql = `
-		SELECT count(1) AS count
-		FROM groups
-		WHERE name = $1;
-	`
-	return query(sql, [target])
-		.then(rows => rows[0].count)
-		.then(count => {
-			if (count === 0) {
-				throw new Error(`Group ${ target } was not found.`);
-			}
-			else {
-				const sql = `
-					SELECT project_name, auth_level
-					FROM groups_in_projects
-					WHERE group_name = $1;
-				`
-				return query(sql, [target])
-					.then(rows => {
-						const map = {};
-						rows.forEach(({ project_name, auth_level }) => {
-							map[project_name] = auth_level;
-						})
-						const sql = `
-							SELECT project_name, auth_level
-							FROM users_in_groups AS uig
-							INNER JOIN groups_in_projects AS gip
-							ON uig.group_name = gip.group_name
-							WHERE user_email = $1;
-						`
-						return query(sql, [userData.email])
-							.then(rows => {
-								let canSend = false;
-								rows.forEach(({ project_name, auth_level }) => {
-									canSend = canSend || (auth_level >= map[project_name]);
-								})
-								if (!canSend) {
-									throw new Error(`You do not have the authority to send a message to group ${ target }.`)
-								}
-								else {
-									const sql = `
-										SELECT user_email
-										FROM users_in_groups
-										WHERE group_name = $1
-										AND user_email != $2;
-									`
-									return query(sql, [target, userData.email])
-										.then(rows => {
-											const queries = rows.map(({ user_email }) => {
-												const sql = `
-													INSERT INTO messages(heading, message, user_email, created_by)
-													VALUES ($1, $2, $3, $4);
-												`
-												return query(sql, [heading, message, user_email, userData.email])
-											})
-											return Promise.all(queries)
-												.then(() => `Sent message to group ${ target }.`)
-										})
-								}
-							})
-					})
-			}
-		})
+const sendMessageToUsers = async (senderData, heading, message, send_to, project) => {
+console.log("sendMessageToUsers", send_to)
+	const promises = send_to.map(user =>
+		sendMessageToUser(senderData, heading, message, user, project)
+	)
+	await Promise.all(promises);
+
+	return "Messages sent.";
 }
 
-const sendMessageToProject = (userData, heading, message, target) => {
-	const sql = `
-		SELECT count(1) AS count
-		FROM projects
-		WHERE name = $1;
+const sendMessageToGroup = async (userData, heading, message, group, project) => {
+	let sql = `
+		SELECT COALESCE(auth_level, -1)
+		FROM groups_in_projects
+		WHERE group_name = $1
+		AND project_name = $2;
 	`
-	return query(sql, [target])
-		.then(rows => rows[0].count)
-		.then(count => {
-			if (count === 0) {
-				throw new Error(`Project ${ target } was not found.`);
-			}
-			else {
-				return getUserAuthLevel(userData.email, target)
-					.then(userAuthLevel => {
-						if (userAuthLevel === 0) {
-							throw new Error(`You do not have the authority to send messages to project ${ target }.`)
-						}
-						else {
-							const sql = `
-								SELECT user_email
-								FROM users_in_groups AS uig
-								INNER JOIN groups_in_projects AS gip
-								ON uig.group_name = gip.group_name
-								WHERE project_name = $1
-								AND user_email != $2;
-							`
-							return query(sql, [target, userData.email])
-								.then(rows => {
-									const queries = rows.map(({ user_email }) => {
-										const sql = `
-											INSERT INTO messages(heading, message, user_email, created_by)
-											VALUES ($1, $2, $3, $4);
-										`
-										return query(sql, [heading, message, user_email, userData.email])
-									})
-									return Promise.all(queries)
-										.then(() => `Sent message to project ${ target }.`)
-								})
-						}
-					})
-			}
-		})
+	const [reqAuthLevel] = await query(sql, [group, project]);
+
+	if (reqAuthLevel === -1) {
+		throw new Error(`Group ${ group } was not found.`);
+	}
+
+	sql = `
+		SELECT MAX(auth_level) AS auth_level
+		FROM users_in_groups AS uig
+		INNER JOIN groups_in_projects AS gip
+			USING(group_name)
+		WHERE user_email = $1
+		AND project_name = $2;
+	`
+	const [userAuthLevel] = await query(sql, [userData.email, project]);
+
+	if (userAuthLevel < reqAuthLevel) {
+		throw new Error(`You do not have the authority to message group ${ group }.`);
+	}
+
+	sql = `
+		SELECT user_email
+		FROM users_in_groups
+		WHERE group_name = $1
+		AND user_email != $2;
+	`
+	const users = await query(sql, [group, userData.email]);
+
+	const promises = users.map(({ user_email }) => {
+		return sendMessageToUser(userData, heading, message, user_email, project);
+	});
+
+	await Promise.all(promises);
+
+	return `Sent message to group ${ group }.`
 }
 
-const sendMessageToAll = (userData, heading, message) => {
-	const sql = `
+const sendMessageToProject = async (userData, heading, message, project) => {
+	let sql = `
+		SELECT COALESCE(MAX(auth_level), -1)
+		FROM groups_in_projects
+		WHERE project_name = $1;
+	`
+	const [reqAuthLevel] = await query(sql, [project]);
+
+	if (reqAuthLevel === -1) {
+		throw new Error(`Project ${ project } was not found.`);
+	}
+
+	sql = `
+		SELECT MAX(auth_level) AS auth_level
+		FROM users_in_groups AS uig
+		INNER JOIN groups_in_projects AS gip
+			USING(group_name)
+		WHERE user_email = $1
+		AND project_name = $2;
+	`
+	const [userAuthLevel] = await query(sql, [userData.email, project]);
+
+	if (userAuthLevel < reqAuthLevel) {
+		throw new Error(`You do not have the authority to message project ${ project }.`);
+	}
+
+	sql = `
+		SELECT DISTINCT user_email
+		FROM users_in_groups
+		JOIN groups_in_projects
+			USING(group_name)
+		WHERE project_name = $1
+		AND user_email != $2;
+	`
+	const users = await query(sql, [project, userData.email]);
+
+	const promises = users.map(({ user_email }) => {
+		return sendMessageToUser(userData, heading, message, user_email, project);
+	});
+
+	await Promise.all(promises);
+
+	return `Sent message to project ${ project }.`
+}
+
+const sendMessageToAll = async (userData, heading, message) => {
+	let sql = `
 		SELECT count(1) AS count
 		FROM users_in_groups
 		WHERE group_name = 'AVAIL'
 		AND user_email = $1;
 	`
-	return query(sql, [userData.email])
-		.then(rows => rows[0].count)
-		.then(count => {
-			if (count === 0) {
-				throw new Error(`You do not have the authority to send messages to all users.`)
-			}
-			else {
-				const sql = `
-				 SELECT email
-				 FROM users
-				 WHERE email != $1;
-				`
-				return query(sql, [userData.email])
-					.then(rows => {
-						const queries = rows.map(({ email }) => {
-							const sql = `
-								INSERT INTO messages(heading, message, user_email, created_by)
-								VALUES ($1, $2, $3, $4);
-							`
-							return query(sql, [heading, message, email, userData.email])
-						})
-						return Promise.all(queries)
-							.then(() => `Sent message to all users.`)
-					})
-			}
-		})
+	const [{ count }] = await query(sql, [userData.email]);
+
+	if (!count) {
+		throw new Error('You do not have the authority to message all users.');
+	}
+
+	sql = `
+		SELECT DISTINCT email
+		FROM users
+		WHERE email != $1;
+	`
+	const users = await query(sql, [userData.email]);
+
+	const promises = users.map(({ email }) => {
+		return sendMessageToUser(userData, heading, message, email, project);
+	});
+
+	await Promise.all(promises);
+
+	return `Sent message to all users.`
 }
 
 module.exports = {
 
-	sendMessageToGroup,
-
-	get: token => {
+	get: (token, project = null) => {
 		return verifyAndGetUserData(token)
 			.then(userData => {
 				const sql = `
 					SELECT *
-					FROM messages
-					WHERE user_email = $1;
+					FROM messages_new
+					WHERE sent_to = $1
+					${ project ? "AND project_name = $2" : "" };
 				`
-				return query(sql, [userData.email]);
+				const args = [userData.email];
+				if (project) { args.push(project); }
+				return query(sql, args);
 			})
 	},
 
-	post: (token, heading, message, type, target) => {
+	post: (token, heading, message, type, target, project) => {
+// type = user || group || project || all
+// sendTo = users:[userIds] || groups:[groupNames] || projects:[projectNames]
 		return verifyAndGetUserData(token)
 			.then(userData => {
 				switch (type) {
 					case "user":
-						return sendMessageToUser(userData, heading, message, target);
+						return sendMessageToUser(userData, heading, message, target, project);
+					case "users":
+						return sendMessageToUsers(userData, heading, message, target, project);
 					case "group":
-						return sendMessageToGroup(userData, heading, message, target);
+						return sendMessageToGroup(userData, heading, message, target, project);
 					case "project":
-						return sendMessageToProject(userData, heading, message, target);
+						return sendMessageToProject(userData, heading, message, project);
 					case "all":
 						return sendMessageToAll(userData, heading, message);
 					default:
@@ -212,13 +238,13 @@ module.exports = {
 		return verifyAndGetUserData(token)
 			.then(userData => {
 				const sql = `
-					UPDATE messages
+					UPDATE messages_new
 					SET viewed = TRUE
-					WHERE id IN (${ ids })
-					AND user_email = $1;
+					WHERE id = ANY($1)
+					AND sent_to = $2;
 				`
-				return query(sql, [userData.email])
-					.then(() => ids.length === 1 ? 'Message was set as viewed.' : 'Messages were set as viewed.');
+				return query(sql, [ids, userData.email])
+					.then(() => 'Message(s) set as viewed.');
 			})
 	},
 
@@ -226,12 +252,13 @@ module.exports = {
 		return verifyAndGetUserData(token)
 			.then(userData => {
 				const sql = `
-					DELETE FROM messages
-					WHERE id IN (${ ids })
-					AND user_email = $1
+					UPDATE messages_new
+					SET deleted = TRUE
+					WHERE id = ANY($1)
+					AND sent_to = $2;
 				`
-				return query(sql, [userData.email])
-					.then(() => ids.length === 1 ? 'Message was deleted.' : 'Messages were deleted.');
+				return query(sql, [ids, userData.email])
+					.then(() => 'Message(s) deleted.');
 			})
 	}
 

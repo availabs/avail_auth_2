@@ -31,7 +31,7 @@ export const viewMessages = ids =>
 		if (!Array.isArray(ids)) ids = [ids];
 		const { token } = getState().user;
 		if (token) {
-			postJson("/message/view", { token, ids })
+			postJson("/messages/view", { token, ids })
 				.then(res => {
 					if (res.error) {
 						dispatch(message(res.error));
@@ -51,7 +51,7 @@ export const deleteMessages = ids =>
 		if (!Array.isArray(ids)) ids = [ids];
 		const { token } = getState().user;
 		if (token) {
-			postJson("/message/delete", { token, ids })
+			postJson("/messages/delete", { token, ids })
 				.then(res => {
 					if (res.error) {
 						dispatch(message(res.error));
@@ -69,11 +69,11 @@ export const deleteMessages = ids =>
 		}
 	}
 
-export const postMessage = (heading, msg, type, target) =>
+export const postMessage = (heading, msg, type, target, project) =>
 	(dispatch, getState) => {
 		const { token } = getState().user;
 		if (token) {
-			postJson("/message/post", { token, heading, message: msg, type, target })
+			postJson("/messages/post", { token, heading, message: msg, type, target, project })
 				.then(res => {
 					if (res.error) {
 						dispatch(message(res.error));
