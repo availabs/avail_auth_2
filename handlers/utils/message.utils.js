@@ -7,12 +7,26 @@ const {
 } = require("./auth.utils");
 
 const slacker = require("./slacker")
+const { send: emailer } = require("./mail_service")
 
 const DefaultUserPreferences = {
 	receiveEmail: false,
 	receiveSlack: false,
 	// slackUserId: <-- required if receiveSlack === true
 }
+
+const HTML_TEMPLATE =
+	'<div style="background-color: #fff; padding: 2rem;">' +
+		'<div style="display: inline-block;">' +
+			'<div style="padding: 3rem;">' +
+				'<div style="border: 2px solid #4B72FA; padding: 1.5rem; border-radius: 0.25rem;">' +
+					'<div style="font-size: 1rem; line-height: 1.5rem; white-space: pre-wrap;">' +
+						'__BODY__' +
+					'</div>' +
+				'</div>' +
+			'</div>' +
+		'</div>' +
+	'</div>';
 
 const sendMessageToUser = async (senderData, heading, message, send_to, project) => {
 
@@ -36,8 +50,6 @@ const sendMessageToUser = async (senderData, heading, message, send_to, project)
 
 	const [{ email }] = rows;
 
-console.log("SENDIG MESSAGE TO:", email)
-
 	sql = `
 		SELECT preferences
 		FROM user_preferences
@@ -57,6 +69,10 @@ console.log("SENDIG MESSAGE TO:", email)
 	if (receiveSlack && slackUserId) {
 		await slacker(slackUserId, message);
 	}
+	if (receiveEmail) {
+		const html = HTML_TEMPLATE.replace("__BODY__", message);
+		await emailer(email, heading, message, html);
+	}
 
 	sql = `
 		INSERT INTO messages_new(heading, message, sent_by, sent_to, project_name)
@@ -68,7 +84,6 @@ console.log("SENDIG MESSAGE TO:", email)
 }
 
 const sendMessageToUsers = async (senderData, heading, message, send_to, project) => {
-console.log("sendMessageToUsers", send_to)
 	const promises = send_to.map(user =>
 		sendMessageToUser(senderData, heading, message, user, project)
 	)
