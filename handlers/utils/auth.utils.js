@@ -344,6 +344,10 @@ module.exports = {
 																						tokenize({ group: group_name, project: project_name, email, from: "signup-request-addToGroup" }, '24h')
 																							.then(token => {
 																								const url = `${ HOST }${ URL }/${ token }`
+																								console.log('------------------------')
+																								console.log('request', email, token )
+																								console.log('request', url )
+																								console.log('------------------------')
 																								return send(
 																									email,
 																									"Signup Request Received.",
