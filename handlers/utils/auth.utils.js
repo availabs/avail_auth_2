@@ -888,6 +888,27 @@ module.exports = {
 					.then(() => sign(userData.email, passwordHash))
 			})
 	},
+	passwordForce: (token, userEmail, password) => {
+		return verifyAndGetUserData(token)
+			.then(userData => {
+				return getUserAuthLevel(userData.email, "avail_auth")
+					.then(authLevel => {
+						if (authLevel >= 10) {
+							const passwordHash = hashSync(password);
+							const sql = `
+								UPDATE users
+								SET password = $1
+								WHERE email = $2;
+							`
+							return query(sql, [passwordHash, userEmail])
+								.then(() => sign(userData.email, userData.password))
+						}
+						else {
+							throw new Error("You do not have the authority to set the password for other users.");
+						}
+					})
+			})
+	},
 
 	passwordUpdate: (token, current, password) => {
 		return new Promise((resolve, reject) => {

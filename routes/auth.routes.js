@@ -68,6 +68,10 @@ module.exports = [
 		method: "post",
 		handler: AuthHandlers.passwordSet
 	},
+	{ route: "/password/force",
+		method: "post",
+		handler: AuthHandlers.passwordForce
+	},
 
 	{ route: "/reset",
 		handler: AuthHandlers.reset

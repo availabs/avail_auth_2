@@ -12,6 +12,7 @@ import {
 	remove,
 	createFake
 } from "../../store/modules/users.module"
+import { passwordForce } from "../../store/modules/user.module"
 import {
 	accept,
 	getRequests,
@@ -23,8 +24,14 @@ class User extends Component {
 		super(props);
 		this.state = {
 			assignTo: "",
-			removeFrom: ""
+			removeFrom: "",
+			forcedPassword: ""
 		}
+		this.onChange = this.onChange.bind(this);
+		this.validateAssignTo = this.validateAssignTo.bind(this);
+		this.validateRemoveFrom = this.validateRemoveFrom.bind(this);
+		this.deleteUser = this.deleteUser.bind(this);
+		this.forcePassword = this.forcePassword.bind(this);
 	}
 	onChange(e) {
 		this.setState({ [e.target.id]: e.target.value });
@@ -65,19 +72,35 @@ class User extends Component {
 			}
 		)
 	}
+	forcePassword() {
+		this.props.message(
+			`Are you sure you want to set the password for user "${ this.props.email }" to "${ this.state.forcedPassword }"?`,
+			{
+				duration: 0,
+				id: `password-force-${ this.props.email }`,
+				onConfirm: () => this.props.force(this.props.email, this.state.forcedPassword)
+			}
+		)
+	}
 	render() {
 		const {
 			email,
 			created_at,
 			groups,
 			projects,
-			allGroups
+			allGroups,
+			user,
+			force
 		} = this.props;
+
 		const {
 			assignTo,
 			removeFrom
 		} = this.state;
+
 		const joinDate = new Date(created_at);
+		const userAuthLevel = user.authLevel;
+
 		return (
 			<tr>
 				<td className="info-group">{ this.props.email }</td>
@@ -85,7 +108,7 @@ class User extends Component {
 				<td className="group-1">
 					<select value={ removeFrom } id="removeFrom"
 						className="form-control form-control-sm"
-						onChange={ this.onChange.bind(this) }>
+						onChange={ this.onChange }>
 						<option value="" hidden>Select a group...</option>
 						{
 							groups.map(g => <option key={ g } value={ g }>{ g }</option>)
@@ -93,7 +116,7 @@ class User extends Component {
 					</select>
 				</td>
 				<td className="group-1">
-					<button onClick={ this.validateRemoveFrom.bind(this) }
+					<button onClick={ this.validateRemoveFrom }
 						className="btn btn-sm btn-danger">
 						remove
 					</button>
@@ -101,7 +124,7 @@ class User extends Component {
 				<td className="group-2">
 					<select value={ assignTo } id="assignTo"
 						className="form-control form-control-sm"
-						onChange={ this.onChange.bind(this) }>
+						onChange={ this.onChange }>
 						<option value="" hidden>Select a group...</option>
 						{
 							allGroups.filter(g => !groups.includes(g.name))
@@ -110,13 +133,27 @@ class User extends Component {
 					</select>
 				</td>
 				<td className="group-2">
-					<button onClick={ this.validateAssignTo.bind(this) }
+					<button onClick={ this.validateAssignTo }
 						className="btn btn-sm btn-success">
 						assign
 					</button>
 				</td>
+				<td className="group-3">
+					<input id="forcedPassword"
+						className="form-control form-control-sm"
+						value={ this.state.forcedPassword }
+						onChange={ this.onChange }
+						disabled={ userAuthLevel < 10 }/>
+				</td>
+				<td className="group-3">
+					<button className="btn btn-sm btn-success"
+						onClick={ this.forcePassword }
+						disabled={ userAuthLevel < 10 && !this.state.forcedPassword }>
+						set
+					</button>
+				</td>
 				<td className="delete-group">
-					<button onClick={ this.deleteUser.bind(this) }
+					<button onClick={ this.deleteUser }
 						className="btn btn-sm btn-danger">
 						delete
 					</button>
@@ -169,7 +206,7 @@ class RejectedUser extends Component {
 			project_name,
 			resolved_at
 		} = this.props.request;
-		
+
 		const {
 			groups
 		} = this.props;
@@ -209,6 +246,40 @@ class RejectedUser extends Component {
 	}
 }
 
+const UserHeaders = [
+	"email",
+	"join date",
+	"groups",
+	"remove",
+	"groups",
+	"assign",
+	"password",
+	"set",
+	"delete"
+]
+const UserCategories = [
+	{ name: "Basic Info",
+		className: "info-group",
+		range: [0, 1]
+	},
+	{ name: "Remove from Group",
+		className: "group-1",
+		range: [2, 3]
+	},
+	{ name: "Assign to Group",
+		className: "group-2",
+		range: [4, 5]
+	},
+	{ name: "Set Password",
+		className: "group-3",
+		range: [6, 7]
+	},
+	{ name: "Delete User",
+		className: "delete-group",
+		range: [8, 8]
+	}
+]
+
 class UserManagement extends Component {
 	constructor(props) {
 		super(props);
@@ -228,7 +299,6 @@ class UserManagement extends Component {
 	}
 
 	createFake() {
-console.log(this.props.createFake)
 		this.props.message(
 			`Are you sure you wish to create a new fake user?`,
 			{
@@ -250,7 +320,8 @@ console.log(this.props.createFake)
 			assign,
 			remove,
 			deleteRequest,
-			user
+			user,
+			passwordForce
 		} = this.props;
 
 		const {
@@ -282,7 +353,7 @@ console.log(this.props.createFake)
  		const projects = groups.reduce((a, c) => [...new Set([...a, ...c.projects.map(p => p.project_name)])], []);
 
 		return (
-			<div className="container">
+			<div className="container-fluid">
         <h3>User Management</h3>
         <table className="table table-sm">
           <thead>
@@ -324,28 +395,11 @@ console.log(this.props.createFake)
           </thead>
         </table>
 				{ !unassignedUsers.length ? null :
-					<>
+					<div style={ { marginTop: "0.5rem" } }>
 						<h3>Unassigned Users</h3>
 		        <TableContainer
-		        	headers={ ["email", "join date", "groups", "remove", "groups", "assign", "delete"] }
-							categories={ [
-								{ name: "Basic Info",
-									className: "info-group",
-									range: [0, 1]
-								},
-								{ name: "Remove from Group",
-									className: "group-1",
-									range: [2, 3]
-								},
-								{ name: "Assign to Group",
-									className: "group-2",
-									range: [4, 5]
-								},
-								{ name: "Delete User",
-									className: "delete-group",
-									range: [6, 6]
-								}
-							] }
+		        	headers={ UserHeaders }
+							categories={ UserCategories }
 		        	rows={
 		        		unassignedUsers.map(u =>
 			            <User key={ u.email } { ...u }
@@ -353,34 +407,19 @@ console.log(this.props.createFake)
 			            	deleteUser={ deleteUser }
 			            	message={ message }
 			            	assign={ assign }
-			            	remove={ remove }/>
+			            	remove={ remove }
+										force={ passwordForce }
+										user={ user }/>
 			          )
 				      }/>
-					</>
+					</div>
 				}
 				{ !authLevelZeroUsers.length ? null :
-					<>
+					<div style={ { marginTop: "0.5rem" } }>
 						<h3>Auth Level Zero Users</h3>
 		        <TableContainer
-		        	headers={ ["email", "join date", "groups", "remove", "groups", "assign", "delete"] }
-							categories={ [
-								{ name: "Basic Info",
-									className: "info-group",
-									range: [0, 1]
-								},
-								{ name: "Remove from Group",
-									className: "group-1",
-									range: [2, 3]
-								},
-								{ name: "Assign to Group",
-									className: "group-2",
-									range: [4, 5]
-								},
-								{ name: "Delete User",
-									className: "delete-group",
-									range: [6, 6]
-								}
-							] }
+		        	headers={ UserHeaders }
+							categories={ UserCategories }
 		        	rows={
 		        		authLevelZeroUsers.map(u =>
 			            <User key={ u.email } { ...u }
@@ -388,45 +427,34 @@ console.log(this.props.createFake)
 			            	deleteUser={ deleteUser }
 			            	message={ message }
 			            	assign={ assign }
-			            	remove={ remove }/>
+			            	remove={ remove }
+										force={ passwordForce }
+										user={ user }/>
 			          )
 				      }/>
-					</>
+					</div>
 				}
-	      <h3>All Users</h3>
-        <TableContainer
-        	headers={ ["email", "join date", "groups", "remove", "groups", "assign", "delete"] }
-					categories={ [
-						{ name: "Basic Info",
-							className: "info-group",
-							range: [0, 1]
-						},
-						{ name: "Remove from Group",
-							className: "group-1",
-							range: [2, 3]
-						},
-						{ name: "Assign to Group",
-							className: "group-2",
-							range: [4, 5]
-						},
-						{ name: "Delete User",
-							className: "delete-group",
-							range: [6, 6]
-						}
-					] }
-        	rows={
-        		filteredUsers.map(u =>
-	            <User key={ u.email } { ...u }
-	            	allGroups={ groups }
-	            	deleteUser={ deleteUser }
-	            	message={ message }
-	            	assign={ assign }
-	            	remove={ remove }/>
-	          )
-		      }/>
+				<div style={ { marginTop: "0.5rem" } }>
+		      <h3>All Users</h3>
+	        <TableContainer
+						headers={ UserHeaders }
+						categories={ UserCategories }
+	        	rows={
+	        		filteredUsers.map(u =>
+		            <User key={ u.email } { ...u }
+		            	allGroups={ groups }
+		            	deleteUser={ deleteUser }
+		            	message={ message }
+		            	assign={ assign }
+		            	remove={ remove }
+									force={ passwordForce }
+									user={ user }/>
+		          )
+			      }/>
+				</div>
 
 				{ !rejectedRequests.length ? null :
-					<>
+					<div style={ { marginTop: "0.5rem" } }>
 		        <h3>Rejected Requests</h3>
 		        <TableContainer
 		        	headers={ ["email", "project", "date", "groups", "accept", "delete"] }
@@ -455,11 +483,11 @@ console.log(this.props.createFake)
 		              		deleteRequest={ deleteRequest }/>
 		              )
 				      }/>
-					</>
+					</div>
 				}
 
 				{ !user.groups.includes("AVAIL") ? null :
-					<div style={ { marginBottom: "0.5rem" } }>
+					<div style={ { margin: "0.5rem 0rem" } }>
 						<button className="btn btn-lg btn-primary"
 							onClick={ e => this.createFake() }>
 							<h3 style={ { margin: "0px" } }>Create Fake User</h3>
@@ -490,7 +518,8 @@ const mapDispatchToProps = {
 	assign,
 	remove,
 	deleteRequest,
-	createFake
+	createFake,
+	passwordForce
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(UserManagement);

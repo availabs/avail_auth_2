@@ -146,6 +146,35 @@ export const passwordSet = (password, onSet=null) =>
     }
   }
 
+export const passwordForce = (userEmail, password, onSet=null) =>
+  (dispatch, getState) => {
+    const { token } = getState().user;
+    if (token) {
+      return postJson("/password/force", { token, userEmail, password })
+        .then(res => {
+          if (res.error) {
+            dispatch(message(res.error));
+          }
+          else {
+            setUserToken(res);
+						dispatch({
+							type: UPDATE_USER,
+							update: {
+								token: res.token
+							}
+						})
+            if (res.message) {
+              dispatch(message(res.message));
+            }
+            typeof onSet === 'function' && onSet();
+          }
+        });
+    }
+    else {
+      return Promise.resolve();
+    }
+  }
+
 export const passwordReset = (email, onReset=null) =>
 	dispatch =>
 		postJson("/password/reset", { email })

@@ -155,6 +155,12 @@ module.exports = {
 			.then(token => res.json({ token, message: "Your password has been set." }))
 			.catch(error => res.json({ error: error.message }));
 	},
+	passwordForce: (req, res) => {
+		const { token, userEmail, password } = req.body;
+		utils.passwordForce(token, userEmail, password)
+			.then(token => res.json({ token, message: `You successfully set the password for user ${ userEmail }.` }))
+			.catch(error => res.json({ error: error.message }));
+	},
 
 	reset: (req, res) => {
 		res.render("reset");
