@@ -1,5 +1,7 @@
+const baseurl = ''
+
 export const postJson = (url, body) =>
-	fetch(url, {
+	fetch(`${baseurl}${url}`, {
 		method: "POST",
     headers: {
         "Content-Type": "application/json",
