@@ -10,8 +10,9 @@ const DEFAULT_ROUTE_OPTIONS = {
 	method: "get"
 }
 
-module.exports = app =>
+module.exports = (app, basePath='') =>
 	routes.forEach(route => {
+		route.route = `${basePath}${route.route}`
 		const r = {
 			...DEFAULT_ROUTE_OPTIONS,
 			...route
