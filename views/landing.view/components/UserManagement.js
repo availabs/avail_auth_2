@@ -12,12 +12,13 @@ import {
 	remove,
 	createFake
 } from "../../store/modules/users.module"
-import { passwordForce } from "../../store/modules/user.module"
+import { passwordForce, createNewUser } from "../../store/modules/user.module"
 import {
 	accept,
 	getRequests,
 	deleteRequest
 } from "../../store/modules/requests.module"
+import { getProjects } from "../../store/modules/projects.module"
 
 class User extends Component {
 	constructor(props) {
@@ -285,17 +286,35 @@ class UserManagement extends Component {
 		super(props);
 		this.state = {
 			groupFilter: "",
-			searchFilter: ""
+			searchFilter: "",
+
+			isOpen: false,
+
+			newUserEmail: "",
+			newUserEmailVerify: "",
+			newUserPassword: "",
+			newUserPasswordVerify: "",
+			newUserProject: "",
+			newUserGroup: ""
 		}
+
+		this.toggleOpen = this.toggleOpen.bind(this);
+	}
+	toggleOpen() {
+		this.setState(prev => ({ isOpen: !prev.isOpen }));
 	}
 	componentDidMount() {
 		this.props.getGroups();
 		this.props.getRequests();
 		this.props.getUsers();
+		this.props.getProjects();
 	}
 
 	onChange(e) {
 		this.setState({ [e.target.id]: e.target.value })
+		if (e.target.id === "newUserProject") {
+			this.setState({ newUserGroup: "" });
+		}
 	}
 
 	createFake() {
@@ -307,6 +326,25 @@ class UserManagement extends Component {
 				onConfirm: () => this.props.createFake()
 			}
 		)
+	}
+
+	createNewUser(e) {
+    e.preventDefault();
+		const {
+			newUserEmail: email,
+			newUserPassword: password,
+			newUserProject: project,
+			newUserGroup: group
+		} = this.state;
+		this.props.createNewUser(email, password, project, group);
+		this.setState({
+			newUserEmail: "",
+			newUserEmailVerify: "",
+			newUserPassword: "",
+			newUserPasswordVerify: "",
+			newUserProject: "",
+			newUserGroup: ""
+		})
 	}
 
 	render() {
@@ -327,8 +365,22 @@ class UserManagement extends Component {
 		const {
 			groupFilter,
 			projectFilter,
-			searchFilter
+			searchFilter,
+
+			newUserEmail,
+			newUserEmailVerify,
+			newUserPassword,
+			newUserPasswordVerify,
+			newUserProject,
+			newUserGroup
 		} = this.state;
+
+		const newUserDisabled = !newUserEmail ||
+														(newUserEmail !== newUserEmailVerify) ||
+														!newUserPassword ||
+														(newUserPassword !== newUserPasswordVerify) ||
+														!newUserProject ||
+														!newUserGroup;
 
 		const unassignedUsers = users.filter(u => u.groups.length === 0)
 			.filter(u => !groupFilter || u.groups.includes(groupFilter))
@@ -352,9 +404,127 @@ class UserManagement extends Component {
 
  		const projects = groups.reduce((a, c) => [...new Set([...a, ...c.projects.map(p => p.project_name)])], []);
 
+		const newUserGroups = groups.filter(g => {
+			return g.projects.reduce((a, c) => { return a || c.project_name === newUserProject; }, false)
+		})
+
 		return (
 			<div className="container-fluid">
-        <h3>User Management</h3>
+        <h1><b>User Management</b></h1>
+
+				{ this.props.user.authLevel < 10 ? null :
+					<div className="container">
+						<h3 onClick={ this.toggleOpen } style={ { cursor: "pointer" } }>
+							<span className={ `fa ${ this.state.isOpen ? "fa-minus" : "fa-plus" } mr-2` }/>
+							Create New User
+						</h3>
+						{ !this.state.isOpen ? null :
+			        <form onSubmit={ this.createNewUser.bind(this) }>
+
+			          <div className="form-group row">
+			            <div className="col-2"/>
+			            <label htmlFor="newUserEmail" style={ { textAlign: "left" } }
+			              className="col-3 col-form-label">New User Email</label>
+			            <div className="col-5">
+			              <input type="email" id="newUserEmail"
+			                onChange={ this.onChange.bind(this) }
+			                placeholder="enter new user email"
+			                className="form-control form-control-sm"
+			                value={ newUserEmail }/>
+			            </div>
+			          </div>
+
+			          <div className="form-group row">
+			            <div className="col-2"/>
+			            <label htmlFor="newUserEmailVerify" style={ { textAlign: "left" } }
+			              className="col-3 col-form-label">Verify New User Email</label>
+			            <div className="col-5">
+			              <input type="email" id="newUserEmailVerify"
+			                onChange={ this.onChange.bind(this) }
+			                placeholder="verify new user email"
+			                className="form-control form-control-sm"
+			                value={ newUserEmailVerify }/>
+			            </div>
+			          </div>
+
+			          <div className="form-group row">
+			            <div className="col-2"/>
+			            <label htmlFor="newUserPassword" style={ { textAlign: "left" } }
+			              className="col-3 col-form-label">New User Password</label>
+			            <div className="col-5">
+			              <input type="text" id="newUserPassword"
+			                onChange={ this.onChange.bind(this) }
+			                placeholder="enter new user password"
+			                className="form-control form-control-sm"
+			                value={ newUserPassword }/>
+			            </div>
+			          </div>
+
+			          <div className="form-group row">
+			            <div className="col-2"/>
+			            <label htmlFor="newUserPasswordVerify" style={ { textAlign: "left" } }
+			              className="col-3 col-form-label">Verify New User Password</label>
+			            <div className="col-5">
+			              <input type="text" id="newUserPasswordVerify"
+			                onChange={ this.onChange.bind(this) }
+			                placeholder="verify new user password"
+			                className="form-control form-control-sm"
+			                value={ newUserPasswordVerify }/>
+			            </div>
+			          </div>
+
+			          <div className="form-group row">
+			            <div className="col-2"/>
+			            <label htmlFor="newUserProject" style={ { textAlign: "left" } }
+			              className="col-3 col-form-label">New User Project</label>
+			            <div className="col-5">
+			              <select id="newUserProject"
+			                onChange={ this.onChange.bind(this) }
+			                className="form-control form-control-sm"
+			                value={ newUserProject }
+										>
+											<option value="" hidden>Select a project...</option>
+											{ projects.map(p => (
+													<option key={ p } value={ p }>{ p }</option>
+												))
+											}
+										</select>
+			            </div>
+			          </div>
+
+			          <div className="form-group row">
+			            <div className="col-2"/>
+			            <label htmlFor="newUserGroup" style={ { textAlign: "left" } }
+			              className="col-3 col-form-label">New User Group</label>
+			            <div className="col-5">
+			              <select id="newUserGroup"
+			                onChange={ this.onChange.bind(this) }
+			                className="form-control form-control-sm"
+			                value={ newUserGroup }
+										>
+											<option value="" hidden>{ newUserProject ? 'Select a group...' : "Select a project first..." }</option>
+											{ newUserGroups.map(g => (
+													<option key={ g.name } value={ g.name }>{ g.name }</option>
+												))
+											}
+										</select>
+			            </div>
+			          </div>
+
+			          <div style={ { padding: "0 15rem" } }>
+			            <button className="btn btn-sm btn-primary btn-block"
+			              type="submit" value="submit"
+										disabled={ newUserDisabled }
+									>
+										create new user
+									</button>
+			          </div>
+
+							</form>
+						}
+					</div>
+				}
+
         <table className="table table-sm">
           <thead>
           	<tr>
@@ -519,7 +689,9 @@ const mapDispatchToProps = {
 	remove,
 	deleteRequest,
 	createFake,
-	passwordForce
+	passwordForce,
+	getProjects,
+	createNewUser
 }
 
 export default connect(mapStateToProps, mapDispatchToProps)(UserManagement);

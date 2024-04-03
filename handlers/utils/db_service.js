@@ -23,7 +23,6 @@ const query = (sql, values=[]) => {
 	return new Promise((resolve, reject) => {
 		pool.query(sql, values, (error, result) => {
 			if (error) {
-console.log("DB ERROR:", error);
 				reject(new Error(error.detail || "There was a database error."));
 			}
 			else {
@@ -70,7 +69,6 @@ module.exports = {
 			}
 		}
 		catch (e) {
-console.log("DB ERROR:", e)
 			throw new Error("There was a database error.");
 		}
 		return res;

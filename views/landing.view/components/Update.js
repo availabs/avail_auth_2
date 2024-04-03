@@ -61,7 +61,7 @@ class Update extends Component {
     } = this.state;
     return (
       <div className="container">
-        <h3>Update Password</h3>
+        <h1><b>Update Password</b></h1>
         <form onSubmit={ this.valdiate.bind(this) }>
 
           <div className="form-group row">
@@ -107,7 +107,7 @@ class Update extends Component {
             <input className="btn btn-sm btn-primary"
               type="submit" value="submit"/>
           </div>
-          
+
         </form>
       </div>
     )

@@ -73,7 +73,7 @@ class ProjectManagement extends Component {
 	render() {
 		return (
       <div className="container">
-        <h3>Project Management</h3>
+	  		<h1><b>Project Management</b></h1>
         <TableContainer
         	headers={ ["name", "created by", "created at", "delete"] }
         	rows={[

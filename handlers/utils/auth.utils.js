@@ -12,7 +12,8 @@ const bcrypt = require("bcryptjs"),
 
 	{
 		htmlTemplate,
-		htmlTemplateNoClick
+		htmlTemplateNoClick,
+		htmlTemplateSimple
 	} = require("./htmlTemplate");
 
 const hashSync = password => bcrypt.hashSync(password, 10)
@@ -208,14 +209,61 @@ module.exports = {
 	verifyAndGetUserData,
 	getUserGroups,
 
+	createUser: (token, email, password, project, group) => {
+		return verifyAndGetUserData(token)
+			.then(userData => {
+				return getUserAuthLevel(userData.email, "avail_auth")
+					.then(authLevel => {
+						if (authLevel >= 10) {
+							email = email.toLowerCase();
+							const passwordHash = hashSync(password);
+							return begin(client => {
+								const sql = `
+									INSERT INTO users(email, password)
+									VALUES ($1, $2)
+								`
+								return client.query(sql, [email, passwordHash])
+									.then(() => {
+										const sql = `
+											INSERT INTO users_in_groups(user_email, group_name, created_by)
+											VALUES($1, $2, $3)
+										`
+										return client.query(sql, [email, group, userData.email])
+											.then(() => {
+												const sql = `
+													UPDATE signup_requests
+													SET state = 'accepted',
+															resolved_at = NOW(),
+															resolved_by = $1
+													WHERE user_email = $2
+													AND project_name = $3
+												`
+												return client.query(sql, [userData.email, email, project])
+													.then(() => {
+														return send(
+															email,
+															`Project ${ project } Account`,
+															`Your account for project "${ project }" has been created. Your password is "${ password }". Use your email and password to login.`,
+															htmlTemplateSimple(
+																`Your account for project "${ project }" has been created. Your password is "${ password }". Use your email and password to login.`
+															)
+														)
+													})
+											})
+									})
+							})
+						}
+					})
+			})
+	},
+
 	login: (email, password, project) => {
 		email = email.toLowerCase();
-
 		return new Promise((resolve, reject) => {
 			getUserData(email)
 				.then(userData => {
 					if (userData && bcrypt.compareSync(password, userData.password)) {
-						hasProjectAccess(email, project)
+						return hasProjectAccess(email, project)
 							.then(hasAccess => {
 								if (hasAccess) {
 									const sql = `
@@ -289,7 +337,6 @@ module.exports = {
 									.then(rows => +rows[0].count)
 									.then(count => {
 										if (count === 0) {
-
 											if (group_name) { // START ADD TO GROUP
 												const sql = `
 													SELECT count(1) AS count
@@ -306,7 +353,6 @@ module.exports = {
 													.then(rows => +rows[0].count)
 													.then(count => {
 														if (count === 1) {
-
 															const sql = `
 																SELECT *
 																FROM users
@@ -343,18 +389,14 @@ module.exports = {
 																					.then(() =>
 																						tokenize({ group: group_name, project: project_name, email, from: "signup-request-addToGroup" }, '24h')
 																							.then(token => {
-																								const url = `${ HOST }${ URL }/${ token }`
-																								console.log('------------------------')
-																								console.log('request', email, token )
-																								console.log('request', url )
-																								console.log('------------------------')
+																								const url = `${ HOST }${ URL }/${ encodeURIComponent(token) }/`
 																								return send(
 																									email,
 																									"Signup Request Received.",
-																									`Your request to project ${ project_name } has been received. Visit ${ url } to create a password and complete your request.`,
+																									`Your request to project ${ project_name } has been received. Visit "${ url }" to create a password and complete your request.`,
 																									htmlTemplate(
 																										`Your request to project ${ project_name } has been received.`,
-																										`<div>Visit <a href="${ url }">this link</a>, within 24 hours, to create a password and complete your request.</div>`,
+																										`<div>Visit "${ url }", within 24 hours, to create a password and complete your request.</div>`,
 																										url,
 																										"Click here to complete request"
 																									)
@@ -371,21 +413,30 @@ module.exports = {
 													})
 											} // END ADD TO GROUP
 											else {
-												const sql = `
+												let sql = `
 													INSERT INTO signup_requests(user_email, project_name, state)
 													VALUES ($1, $2, 'awaiting');
 												`
+												if (count > 0) {
+													sql = `
+														UPDATE signup_requests
+														SET created_at = NOW()
+														WHERE user_email = $1
+														AND project_name = $2
+														AND state = 'awaiting';
+													`
+												}
 												return query(sql, [email, project_name])
 													.then(() =>
 														tokenize({ project: project_name, email, from: "signup-request" }, '24h')
 															.then(token => {
-																const url = `${ HOST }${ URL }/${ token }`;
+																const url = `${ HOST }${ URL }/${ encodeURIComponent(token) }/`;
 																return send(email,
 																	"Invite Request.",
-																	`Your request to project ${ project_name } has been received and is pending. Visit ${ url } to verify email.`,
+																	`Your request to project ${ project_name } has been received and is pending. Visit "${ url }" to verify email.`,
 																	htmlTemplate(
 																		`Your request to project ${ project_name } has been received and is awaiting email verification.`,
-																		`<div>Visit <a href="${ url }">this link</a>, within 24 hours, to verify your email.</div>`,
+																		`<div>Visit "${ url }", within 24 hours, to verify your email.</div>`,
 																		url,
 																		"Click here to verify email"
 																	)
@@ -395,7 +446,7 @@ module.exports = {
 											}
 										}
 										else {
-											throw new Error(`You already have a pending request for this project.`)
+											throw new Error(`You already have a pending request for this project. Ask an administrator to complete your request.`)
 										}
 									})
 							}
@@ -405,7 +456,7 @@ module.exports = {
 						})
 				}
 				else {
-					throw new Error(`Project ${ project_name } does not exist.`)
+					throw new Error(`Project ${ project_name } does not exist.`);
 				}
 			})
 	},
@@ -413,7 +464,7 @@ module.exports = {
 	verifyEmail: token =>
 		verify(token)
 			.then(({ project, from, email }) => {
-				if (next !== "signup-request") {
+				if (from !== "signup-request") {
 					throw new Error("Invalid request.");
 				}
 				else {

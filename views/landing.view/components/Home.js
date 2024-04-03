@@ -322,7 +322,7 @@ class Home extends Component {
     return (
       <div className='container'>
         <div style={ { position: "relative" } }>
-        	<h3>Welcome</h3>
+  		    <h1><b>Welcome</b></h1>
         	<button className="btn btn-sm btn-success"
         		onClick={ e => this.showOverlay() }
         		style={ { position: "absolute", top: "4px", right: "13px" } }>

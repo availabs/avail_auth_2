@@ -196,7 +196,7 @@ class Stats extends Component {
 
     return (
       <div className="container">
-        <h3>Stats</h3>
+  	    <h1><b>Stats</b></h1>
         <div className="row">
           <div className="col-4"/>
           <div className="col-4">

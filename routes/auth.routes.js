@@ -83,5 +83,10 @@ module.exports = [
 	{ route: "/password/reset",
 		method: 'post',
 		handler: AuthHandlers.passwordReset
+	},
+
+	{ route: "/create/user",
+		method: "post",
+		handler: AuthHandlers.createUser
 	}
 ]

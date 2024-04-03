@@ -98,7 +98,7 @@ class LandingView extends Component {
     if (authed && (authLevel > 0)) {
       headerItems.push(
         { onClick: () => this.setView("pending"),
-          label: "pending requests",
+          label: "request management",
           key: 'pending',
           alert: this.props.requests.filter(r => r.state === "pending").length },
         { onClick: () => this.setView("users"),
@@ -159,9 +159,7 @@ class LandingView extends Component {
       <App headerItems={ this.createHeaderNav() }
         current={ this.state.view }
         links={ links }>
-        { authed ? this.getView() :
-          <Login />
-        }
+        { authed ? this.getView() : <Login /> }
       </App>
   	);
 	}

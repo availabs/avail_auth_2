@@ -237,7 +237,7 @@ class GroupManagement extends Component {
 		return (
 			<div>
 				<div className="container">
-	        <h3>Group Management</h3>
+		      <h1><b>Group Management</b></h1>
 	        <table className="table table-sm">
 	          <thead>
 	          	<tr>

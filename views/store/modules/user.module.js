@@ -146,7 +146,7 @@ export const passwordSet = (password, onSet=null) =>
     }
   }
 
-export const passwordForce = (userEmail, password, onSet=null) =>
+export const passwordForce = (userEmail, password) =>
   (dispatch, getState) => {
     const { token } = getState().user;
     if (token) {
@@ -155,18 +155,8 @@ export const passwordForce = (userEmail, password, onSet=null) =>
           if (res.error) {
             dispatch(message(res.error));
           }
-          else {
-            setUserToken(res);
-						dispatch({
-							type: UPDATE_USER,
-							update: {
-								token: res.token
-							}
-						})
-            if (res.message) {
-              dispatch(message(res.message));
-            }
-            typeof onSet === 'function' && onSet();
+          else if (res.message) {
+            dispatch(message(res.message));
           }
         });
     }
@@ -174,6 +164,25 @@ export const passwordForce = (userEmail, password, onSet=null) =>
       return Promise.resolve();
     }
   }
+
+export const createNewUser = (email, password, project, group) =>
+	(dispatch, getState) => {
+		const { token } = getState().user;
+		if (token) {
+      return postJson("/create/user", { token, email, password, project, group })
+        .then(res => {
+          if (res.error) {
+            dispatch(message(res.error));
+          }
+          else if (res.message) {
+            dispatch(message(res.message));
+          }
+        });
+		}
+    else {
+      return Promise.resolve();
+    }
+	}
 
 export const passwordReset = (email, onReset=null) =>
 	dispatch =>

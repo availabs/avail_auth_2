@@ -181,5 +181,13 @@ module.exports = {
 		utils.passwordReset(email, project_name, projectData)
 			.then(() => res.json({ message: "Your password has been reset. You should receive an email shortly." }))
 			.catch(error => res.json({ error: error.message }));
+	},
+
+	createUser: (req, res) => {
+		const { token, email, password, project, group } = req.body;
+console.log("createUser", email, password, project, group)
+		utils.createUser(token, email, password, project, group)
+			.then(() => res.json({ message: "New user successfully created." }))
+			.catch(error => res.json({ error: error.message }))
 	}
 }

@@ -17,7 +17,7 @@ import {
   message
 } from "../../store/modules/systemMessages.module"
 
-class RequestItem extends Component {
+class PendingRequestItem extends Component {
   constructor(props) {
     super(props);
     this.state = {
@@ -46,7 +46,7 @@ class RequestItem extends Component {
       project_name,
       created_at
     } = this.props.request;
-    
+
     return (
       <tr>
         <td>{ user_email }</td>
@@ -82,7 +82,28 @@ class RequestItem extends Component {
   }
 }
 
+const AwaitingRequestItem = ({ request, ...props }) => {
+  const {
+    user_email,
+    project_name,
+    created_at
+  } = request;
+  return (
+    <tr>
+      <td>{ user_email }</td>
+      <td>{ project_name }</td>
+      <td>{ new Date(created_at).toLocaleString() }</td>
+    </tr>
+  )
+}
+
 class PendingRequests extends Component {
+  state = {
+    searchFilter: ""
+  }
+  setSearch(e) {
+    this.setState({ searchFilter: e.target.value })
+  }
   componentDidMount() {
     this.props.getGroups();
     this.props.getRequests();
@@ -92,22 +113,69 @@ class PendingRequests extends Component {
       groups,
       requests
     } = this.props;
-    const pending = requests.filter(r => r.state === "pending");
+    const [pending, awaiting] = requests.reduce((a, c) => {
+      if (c.state === "pending") {
+        a[0].push(c)
+      }
+      else if (c.state === "awaiting") {
+        a[1].push(c);
+      }
+      return a;
+    }, [[], []]);
+
+    const { searchFilter } = this.state;
+    const toLower = searchFilter.toLowerCase();
+
     return (
       <div className="container">
-        <h3>Pending Requests</h3>
+        <h1><b>Request Management</b></h1>
+
+        <table className="table table-sm">
+          <thead>
+            <tr>
+              <th>
+                Search Requests
+              </th>
+            </tr>
+            <tr>
+              <td colSpan={ 3 }>
+                <input type="text" placeholder="search group names..."
+                  className="form-control form-control-sm"
+                  id="searchFilter" value={ this.state.searchFilter }
+                  onChange={ this.setSearch.bind(this) }/>
+              </td>
+            </tr>
+          </thead>
+        </table>
+
+  		  <h3>Pending Requests</h3>
         <TableContainer
           headers={ ["request email", "project name", "request date", "group", "actions"] }
           rows={
-            pending.map((r, i) =>
-              <RequestItem key={ i } request={ r }
-                accept={ this.props.accept }
-                reject={ this.props.reject }
-                groups={ groups }
-                user={ this.props.user }
-                message={ this.props.message }/>
-            )
+            pending.filter(r => !toLower || r.user_email.toLowerCase().includes(toLower))
+              .map((r, i) =>
+                <PendingRequestItem key={ i } request={ r }
+                  accept={ this.props.accept }
+                  reject={ this.props.reject }
+                  groups={ groups }
+                  user={ this.props.user }
+                  message={ this.props.message }/>
+              )
           }/>
+      		<h3>Awaiting Requests</h3>
+          <TableContainer
+            headers={ ["request email", "project name", "request date"] }
+            rows={
+              awaiting.filter(r => !toLower || r.user_email.toLowerCase().includes(toLower))
+                .map((r, i) =>
+                  <AwaitingRequestItem key={ i } request={ r }
+                    accept={ this.props.accept }
+                    reject={ this.props.reject }
+                    groups={ groups }
+                    user={ this.props.user }
+                    message={ this.props.message }/>
+                )
+            }/>
       </div>
     )
   }
